@@ -16,6 +16,7 @@ class ScoreGenerator:
         self.patient_c.fill(-1)
         self.patient_nc = np.empty([c_cnt, antibody_cnt, antibody_cnt, antibody_cnt, antibody_cnt])
         self.patient_nc.fill(-1)
+        self.measured = np.zeros([antibody_cnt, antibody_cnt, antibody_cnt, antibody_cnt])
 
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
@@ -38,12 +39,14 @@ class ScoreGenerator:
         """
         # TODO: percentages may be different whether patient is c or nc
         for c in ab_combinations:
-            patient_arr[patient_ind][c[0]][c[1]][c[2]][c[3]] = self.draw_patient_percentage()
+            if self.measured[c[0]][c[1]][c[2]][c[3]] == 0:  # not measured yet, take a measurement
+                patient_arr[patient_ind][c[0]][c[1]][c[2]][c[3]] = self.draw_patient_percentage()
+
 
     def assign_percentages_for_all_patients(self, ab_arr):
         """
         Computes the marker percentages for antibody combinations for all cancer and non-cancer patients
-        :param ab_arr: unsorted antibody array of 4 antibodies
+        :param ab_arr: sorted or unsorted antibody array of 4 antibodies
         """
 
         ab_combinations = self.get_unique_combinations(ab_arr)
@@ -52,10 +55,17 @@ class ScoreGenerator:
             self.assign_percentages_for_single_patient(self.patient_nc, i, ab_combinations, False)
 
         for i in range(len(self.patient_c)):
-            self.assign_percentages_for_single_patient(self.patient_nc, i, ab_combinations, True)
+            self.assign_percentages_for_single_patient(self.patient_c, i, ab_combinations, True)
 
+        # update measurement information
+        for c in ab_combinations:
+            self.measured[c[0]][c[1]][c[2]][c[3]] = 1  # update information about measurement
     def get_unique_combinations(self,ab_arr):
-        """Returns all the unique combinations of elements given in the antibody sequence, including their negatives"""
+        """
+        Returns all the unique combinations of elements given in the antibody array,
+        :param ab_arr: Unsorted antibody array of 4
+        :return: an array of unique 2^4 combinations, 0 means that element is non-existent
+        """
 
         ab_arr = np.sort(ab_arr)
 
@@ -76,27 +86,32 @@ class ScoreGenerator:
         :return:
         """
 
-        nc_prec_cnt = 0
+        nc_marker_cnt = 0
         for nc in self.patient_nc:
             # make sure that the array has a meaningful value
             if nc[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]] < 0: # if no value is assigned yet
-                prec_nc = self.predict_percentage_for_ab_sequence(nc, ab_seq)
+                perc_nc = self.predict_percentage_for_ab_sequence(nc, ab_seq)
             else:
-                prec_nc = nc[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
+                perc_nc = nc[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
 
-            if prec_nc < threshold:
-                nc_prec_cnt += 1
+            if perc_nc < threshold:
+                nc_marker_cnt += 1
 
-        c_prec_cnt = 0
+        c_marker_cnt = 0
         for c in self.patient_c:
             if c[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]] < 0: # if no value is assigned yet
-                prec_c = self.predict_percentage_for_ab_sequence(c, ab_seq)
+                perc_c = self.predict_percentage_for_ab_sequence(c, ab_seq)
             else:
-                prec_c = c[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
-            if  prec_c >= threshold:
-                c_prec_cnt += 1
+                perc_c = c[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
 
-        return (float(c_prec_cnt)/ self.c_cnt) + (float(nc_prec_cnt)/self.nc_cnt)
+            if perc_c >= threshold:
+                c_marker_cnt += 1
+
+        prec = float(c_marker_cnt + nc_marker_cnt) /(self.c_cnt + self.nc_cnt)
+
+        # print c_marker_cnt
+
+        return prec
 
     def compute_max_precision_for_ab_combination(self, ab_arr, threshold):
         """
@@ -113,7 +128,6 @@ class ScoreGenerator:
             prec = self.compute_precision_for_ab_sequence(comb, threshold)
             if prec > max_prec:
                 max_prec = prec
-
 
         return max_prec
 
@@ -149,25 +163,29 @@ class ScoreGenerator:
 
         return groups
 
-    def predict_percentage_for_group_intersection(self, patient, groups):
+    def predict_percentage_for_group_intersection(self, patient, group):
         """
         :param self:
         :param patient: patient_arr[patient_ind]
-        :param groups: a double array to show antibody sequences, e.g. [[a,b], [c]]
+        :param group: a double array to show antibody sequences, e.g. [[a,b], [c]]
         :return: Independence assumption: precision([a,b]) * precision([c])
         """
 
-        prec = 1
-        for group in groups:
+        perc = 1
+        for el in group:
             # format group into a sequence
             ab_seq = np.zeros(4)
-            for i in range(len(group)):
-                ab_seq[i] = group[i]
+            for i in range(len(el)):
+                ab_seq[i] = el[i]
+
             ab_seq = np.sort(ab_seq)
+            # even if one value in the group is unknown, return 0
+            if patient[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]] < 0:
+                return 0
 
-            prec *= patient[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
+            perc *= patient[ab_seq[0]][ab_seq[1]][ab_seq[2]][ab_seq[3]]
 
-        return prec
+        return perc
 
     def predict_percentage_for_ab_sequence(self, patient, ab_seq):
         """
@@ -181,20 +199,27 @@ class ScoreGenerator:
 
         groups = self.get_independent_groups(ab_seq)
 
-        prec = 0
+        perc = 0
         for g in groups:
-            prec += self.predict_percentage_for_group_intersection(patient, g)
+            perc += self.predict_percentage_for_group_intersection(patient, g)
 
-        prec /= len(groups)
 
-        return prec
+        perc /= len(groups)
+
+        return perc
 
 
 # sg = ScoreGenerator(20,20,20)
 # sg.assign_percentages_for_all_patients([1,2,3,4])
 # prec1 = sg.compute_precision_for_ab_sequence([0,0,1,2], 0.2)
 # prec2 = sg.compute_precision_for_ab_sequence([0,0,3,4], 0.2)
-# inters = sg.predict_precision_for_group_intersection([[1,2], [3,4]], 0.2)
+# perc= sg.predict_percentage_for_ab_sequence(sg.patient_c[0], [1,2,3,4])
+#
+# inters = sg.predict_percentage_for_group_intersection(sg.patient_c[0], [[1,2],[3,4]])
+# print inters
+# print prec1
+# print prec2
+
 # print prec1*prec2 == inters
 # print sg.predict_precision_for_ab_sequence([1,2,3,4],0.2)
 # print sg.compute_max_precision_for_ab_combination([1,2,3,4], 0.2)

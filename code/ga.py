@@ -9,7 +9,7 @@ from itertools import combinations
 
 ANTIBODY_CNT = 20 #242
 MUTATION_PROBABILITY = 0.03
-POPULATION_SIZE = 100  # make this divisible by 2
+POPULATION_SIZE = 20  # make this divisible by 2
 MAX_GENERATIONS = 100
 NC_CNT = 20  # non-cancer patients
 C_CNT = 20  # cancer patients
@@ -191,6 +191,7 @@ class GASolver:
 
         score = self.SG.compute_max_precision_for_ab_combination(child, C_THRESHOLD)
 
+
         self.fitness[child[0]][child[1]][child[2]][child[3]] = score
 
     def survive_n_fittest(self, generation, n):
@@ -221,27 +222,42 @@ class GASolver:
         :return:
         """
 
+
+
+
         for i in range(max_gen_cnt-1):
-            # print max fitness for each generation
-            max_fitness = -1
-            fittest_child = self.population[i][0]
-            for j in range(len(self.population[i])):
-                child = self.population[i][j]
-                fitness = self.fitness[child[0]][child[1]][child[2]][child[3]] # self.compute_fitness(self.population[i][j])
-                if fitness > max_fitness:
-                    max_fitness = fitness
-                    fittest_child = child
+
+            prev_max_fitness = 1000
+
+            while True:
+                max_fitness = -1
+                fittest_child = self.population[i][0]
+                for j in range(len(self.population[i])):
+                    child = self.population[i][j]
+                    fitness = self.fitness[child[0]][child[1]][child[2]][child[3]] # self.compute_fitness(self.population[i][j])
+
+                    if fitness > max_fitness and fitness < prev_max_fitness:
+                        max_fitness = fitness
+                        fittest_child = child
+
+                prev_max_fitness = max_fitness
+
+                # break the while loop if we find an unmeasured sequence
+                if self.SG.measured[fittest_child[0]][fittest_child[1]][fittest_child[2]][fittest_child[3]] == 0:
+                    break
+
+            prev_max_fitness = max_fitness
 
             print max_fitness
             print fittest_child
 
-            # update values for fittest child through the experiment
+            # update values for fittest unmeasured child through the experiment
             self.SG.assign_percentages_for_all_patients(fittest_child)
             self.update_fitness(fittest_child)
 
+
             self.experiment_cnt += 1
 
-            # print self.experiment_cnt
 
             if max_fitness >= 1:
                 break
@@ -258,9 +274,6 @@ class GASolver:
             self.increment_current_generation()
 
             self.mutate_generation(i + 1)
-
-
-
 
 
     def animate(self, gen_cnt):
@@ -317,7 +330,7 @@ class GASolver:
 gs = GASolver()
 #
 gs.run_simulation(MAX_GENERATIONS)
-gs.animate(gs.experiment_cnt)
+# gs.animate(gs.experiment_cnt)
 
 # print(gs.population[0])
 
