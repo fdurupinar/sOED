@@ -229,6 +229,7 @@ class GASolver:
 
             prev_max_fitness = 1000
 
+            iter_cnt = 0
             while True:
                 max_fitness = -1
                 fittest_child = self.population[i][0]
@@ -241,9 +242,10 @@ class GASolver:
                         fittest_child = child
 
                 prev_max_fitness = max_fitness
-
+                iter_cnt += 1
                 # break the while loop if we find an unmeasured sequence
-                if self.SG.measured[fittest_child[0]][fittest_child[1]][fittest_child[2]][fittest_child[3]] == 0:
+                if self.SG.measured[fittest_child[0]][fittest_child[1]][fittest_child[2]][fittest_child[3]] == 0 or \
+                                iter_cnt >= len(self.population) :  # all of them have been measured
                     break
 
             prev_max_fitness = max_fitness
