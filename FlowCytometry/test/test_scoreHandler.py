@@ -232,3 +232,5 @@ class TestScoreHandler(TestCase):
         prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 3, 4]), 0.4)
 
         self.assertEqual(prec, 0.75)
+
+

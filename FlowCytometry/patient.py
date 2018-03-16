@@ -26,9 +26,8 @@ class Patient:
                 self.ab_percentage_arr[i] = np.random.normal(self.mu,
                                                              self.sigma)  # draw marker probability from a normal distribution
             else:  # draw the rest of the probabilities from a uniform distribution
-                # TODO: make this uniform
-                # self.ab_percentage_arr[i] = np.random.uniform(0, 1)
-                self.ab_percentage_arr[i] = 0
+                self.ab_percentage_arr[i] = np.random.uniform(0, 1)
+                # self.ab_percentage_arr[i] = 0
 
             if self.ab_percentage_arr[i] < 0:
                 self.ab_percentage_arr[i] = 0

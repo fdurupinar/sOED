@@ -3,10 +3,10 @@ from patient import Patient
 
 CELL_CNT = 100
 
-CANCER_MU = 0.8
+CANCER_MU = 0.7
 CANCER_STD_DEV = 0.1
 
-NON_CANCER_MU = 0.2
+NON_CANCER_MU = 0.3
 NON_CANCER_STD_DEV = 0.1
 
 
