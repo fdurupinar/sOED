@@ -1,31 +1,23 @@
 from patient import Patient
 
 
-CELL_CNT = 100
-
-CANCER_MU = 0.7
-CANCER_STD_DEV = 0.1
-
-NON_CANCER_MU = 0.3
-NON_CANCER_STD_DEV = 0.1
-
 
 class PatientFactory:
 
-    def __init__(self, c_or_nc, ab_cnt,  markers, cnt):
+    def __init__(self, c_or_nc, ab_cnt,  markers, cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma):
         """
         Create cnt patients of type <type>
         :param type: "c" or "nc"
         :param cnt: patient count to create
         """
-        self.cell_cnt = CELL_CNT
+        self.cell_cnt = cell_cnt
         self.ab_cnt = ab_cnt
         if c_or_nc == "c":
-            self.mu = CANCER_MU
-            self.sigma = CANCER_STD_DEV
+            self.mu = c_mu
+            self.sigma = c_sigma
         else:
-            self.mu = NON_CANCER_MU
-            self.sigma = NON_CANCER_STD_DEV
+            self.mu = nc_mu
+            self.sigma = nc_sigma
 
         self.patients = self.create_patients(markers, cnt)
 

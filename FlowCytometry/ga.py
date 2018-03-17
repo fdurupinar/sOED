@@ -6,8 +6,8 @@ import matplotlib.animation as anim
 from scoreHandler import ScoreHandler
 
 
-ANTIBODY_CNT = 242
-MUTATION_PROBABILITY = 0.3
+ANTIBODY_CNT = 50
+MUTATION_PROBABILITY = 0.03
 POPULATION_SIZE = 40  # make this divisible by 4
 MAX_GENERATIONS = 100
 NC_CNT = 20  # non-cancer patients
@@ -15,11 +15,22 @@ C_CNT = 20  # cancer patients
 
 C_THRESHOLD = 0.4
 
+
+CELL_CNT = 100
+
+CANCER_MU = 0.7
+CANCER_STD_DEV = 0.1
+
+NON_CANCER_MU = 0.3
+NON_CANCER_STD_DEV = 0.1
+
+
 MARKERS = [1, 5, 7, 8]
 
 class GASolver:
 
-    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers, c_threshold):
+    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers, c_threshold, cell_cnt,
+                 c_mu, c_sigma, nc_mu, nc_sigma):
 
         self.experiment_cnt = 0
         self.max_generations = max_generations
@@ -37,7 +48,7 @@ class GASolver:
 
         self.total_population = population_size
 
-        self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers)
+        self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
 
         self.cross_over_indices = self._generate_cross_over_indices(4)
 
@@ -218,19 +229,6 @@ class GASolver:
 
                 self.population[generation][i] = mutated_child
 
-    def get_fitness_key(self, child):
-        """
-        Encode child list as a string
-        :param child: sorted np array of 4
-        :return:
-
-        """
-        key = ''
-        for i in range(len(child)-1):
-            key += str(int(child[i])) + '-'
-        key += str(int(child[len(child)-1]))
-
-        return key
 
     def get_fitness_value(self, child):
         """
@@ -240,8 +238,8 @@ class GASolver:
         """
         val = 0
 
-        if self.get_fitness_key(child) in self.fitness:
-            val = self.fitness[self.get_fitness_key(child)]
+        if self.score_handler.get_ab_key(child) in self.fitness:
+            val = self.fitness[self.score_handler.get_ab_key(child)]
 
         return val
 
@@ -254,7 +252,7 @@ class GASolver:
 
         score = self.score_handler.compute_max_precision_for_ab_combination(child, self.c_threshold)
 
-        key = self.get_fitness_key(child)
+        key = self.score_handler.get_ab_key(child)
         self.fitness[key] = score
 
     def survive_n_fittest(self, generation, n):
@@ -320,10 +318,6 @@ class GASolver:
             # survive half of the generation and pass them to the next gen
             self.survive_n_fittest(i, self.population_size / 2)
 
-            # TODO remove
-            total_max_fitness = self.find_max_fitness_and_child(i+1, True)
-            print "total max fitness after eliminating"
-            print total_max_fitness
 
             # cross over the next generation half
 
@@ -333,11 +327,6 @@ class GASolver:
 
             # mutate the new ones only, not the old ones
             self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
-
-            # TODO remove
-            total_max_fitness = self.find_max_fitness_and_child(i + 1, True)
-            print "total max fitness after mutation and cross-over"
-            print total_max_fitness
 
 
             # find fittest unmeasured child
@@ -357,8 +346,6 @@ class GASolver:
                 self.score_handler.update_measured(max_fitness['child'])
 
                 self.experiment_cnt += 1
-
-
 
 
 
@@ -411,7 +398,9 @@ class GASolver:
 
 
 #
-gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS, C_THRESHOLD)
+gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS, C_THRESHOLD, CELL_CNT, CANCER_MU, CANCER_STD_DEV,
+              NON_CANCER_MU, NON_CANCER_STD_DEV)
+
 gs.run_simulation(MAX_GENERATIONS)
 
 # gs.animate(gs.experiment_cnt)

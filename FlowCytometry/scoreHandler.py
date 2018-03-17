@@ -3,24 +3,43 @@ from itertools import combinations
 
 from patientFactory import PatientFactory
 
+
 #A,B,C,D combinations [-,-,-,-],[-,-,-,+], [-,-,+,-]. [-,-,+,+], [-,+,-,-]. [-,+,-,+]. [-,+,+,-], [-,+,+,+].
 #[+,-,-,-],[+,-,-,+], [+,-,+,-]. [+,-,+,+], [+,+,-,-]. [+,+,-,+]. [+,+,+,-], [+,+,+,+]
 
 
 class ScoreHandler:
 
-    def __init__(self, ab_cnt, nc_cnt, c_cnt, markers):
+    def __init__(self, ab_cnt, nc_cnt, c_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma):
 
         self.measured_list = []  # already measured, sorted ab sequences
-        self.predicted = []  # already measured, sorted ab sequences
+
+        self.measured_dict = {}
 
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory("c", ab_cnt, markers, self.c_cnt)
+        pf_c = PatientFactory("c", ab_cnt, markers, self.c_cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
         self.patients_c = pf_c.patients
-        pf_nc = PatientFactory("nc", ab_cnt, markers, self.nc_cnt)
+        pf_nc = PatientFactory("nc", ab_cnt, markers, self.nc_cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
         self.patients_nc = pf_nc.patients
+
+
+    @staticmethod
+    def get_ab_key(child):
+        """
+        Encode child list as a string
+        :param child: sorted np array of 4
+        :return:
+
+        """
+        key = ''
+        if len(child) > 0:
+            for i in range(len(child)-1):
+                key += str(int(child[i])) + '-'
+            key += str(int(child[len(child)-1]))
+
+        return key
 
     def is_measured(self, ab_arr):
         """
@@ -29,7 +48,9 @@ class ScoreHandler:
         :return:
         """
 
-        return  ab_arr.tolist() in self.measured_list
+        key = self.get_ab_key(ab_arr)
+        return key in self.measured_dict
+        # return  ab_arr.tolist() in self.measured_list
 
     def _add_measured(self, ab_arr):
         """
@@ -39,8 +60,18 @@ class ScoreHandler:
         """
 
         ab_arr = np.sort(ab_arr)
-        if not self.is_measured(ab_arr):
-            self.measured_list.append(ab_arr.tolist())
+
+        key = self.get_ab_key(ab_arr)
+        self.measured_dict[key] = 0
+
+        # if not self.is_measured(ab_arr):
+        #     self.measured_list.append(ab_arr.tolist())
+
+    def _add_measurement(self, ab_arr, val):
+        ab_arr = np.sort(ab_arr)
+
+        key = self.get_ab_key(ab_arr)
+        self.measured_dict[key] = val
 
     def update_measured(self, ab_arr):
         """
@@ -126,15 +157,28 @@ class ScoreHandler:
 
         perc = 1
 
+        combined_el = np.array([])
+        for el in group:
+            combined_el = np.concatenate((combined_el, el))
+
+        combined_el = np.sort(combined_el)
+        # if combined_el.tolist() in self.measured_list: # this must have been observed before
+        if self.is_measured(combined_el):
+            return 0
+
+        # if a combined value is known, skip this group
+        # e.g. if ab is known, no need to predict a * b
         for el in group:
 
             # even if one value in the group is unknown, return 0
-
             el = np.sort(el)
-            if el.tolist() not in self.measured_list:
+            # if el.tolist() not in self.measured_list:
+            if not self.is_measured(el):
                 return 0
 
+            #must be already measured or predicted
             perc *= patient.get_marker_ratio(el, [])  # no need to consider the absent ones
+
 
         return perc
 
@@ -142,6 +186,7 @@ class ScoreHandler:
         """
         Computes all possible independent groups and finds their average precision
         E.g. for sequence (a,b,c) it looks at 5 groups of a*b*c, a*cd, ab*c, bc*a, abc etc.
+        Doesn't try to make predictions for unknown values. It uses already measured values
         :param patient:
         :param ab_list: could be any length
         :return: mean value of all the possible groups with already measured values
@@ -154,10 +199,16 @@ class ScoreHandler:
         groups = self._get_independent_groups(ab_list)
 
         perc = 0
+        cnt = 0
         for g in groups:
             perc += self._predict_percentage_for_group_intersection(patient, g)
+            if perc > 0:
+                cnt += 1  # ignore the 0 values -- unmeasured ones
 
-        perc /= len(groups)
+        if cnt > 0:
+            perc /= cnt
+        else:
+            perc = 0
 
         return perc
 
@@ -169,14 +220,14 @@ class ScoreHandler:
         :param threshold:
         :return:
         """
-
         nc_marker_cnt = 0
         c_marker_cnt = 0
 
         full_ab_list = np.concatenate((present_ab_list, absent_ab_list))
         full_ab_list = np.sort(full_ab_list)
 
-        if full_ab_list.tolist() in self.measured_list:  # read from the experiments
+        # if full_ab_list.tolist() in self.measured_list:  # read from the experiments
+        if self.is_measured(full_ab_list):
             for nc in self.patients_nc:
                 if nc.get_marker_ratio(present_ab_list, absent_ab_list) < threshold:
                     nc_marker_cnt += 1
@@ -193,13 +244,10 @@ class ScoreHandler:
                 if self._predict_percentage_for_ab_list(c, present_ab_list) >= threshold:
                     c_marker_cnt += 1
 
-            self.predicted.append({'p': present_ab_list, 'a': absent_ab_list})
-
         prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
 
-        # print c_marker_cnt
-
         return prec
+
 
     def compute_max_precision_for_ab_combination(self, ab_arr, threshold):
         """

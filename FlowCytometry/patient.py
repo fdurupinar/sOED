@@ -15,6 +15,8 @@ class Patient:
         self._compute_ab_percentages()
         self._assign_all_antibodies()
 
+        self.marker_ratios = {}
+
     def _compute_ab_percentages(self):
         """
         Fill in the percentages array for each antibody
@@ -60,6 +62,30 @@ class Patient:
         for i in range(len(self.ab_percentage_arr)):
             self._assign_ab(i, self.ab_percentage_arr[i])
 
+    @staticmethod
+    def get_marker_key(present_ab_list, absent_ab_list):
+        """
+        Encode the lists into keys for dictionary lookup
+        :param present_ab_list:
+        :param absent_ab_list:
+        :return:
+        """
+
+        key = ''
+        if len(present_ab_list) > 0:
+            present_ab_list = np.sort(present_ab_list)
+            for i in range(len(present_ab_list)):
+                key += str(int(present_ab_list[i])) + '-'
+
+        if len(absent_ab_list) > 0:
+            absent_ab_list = np.sort(absent_ab_list)
+            for i in range(len(absent_ab_list) - 1):
+                key += '!' + str(int(absent_ab_list[i])) + '-'
+            key += '!'+ str(int(absent_ab_list[len(absent_ab_list) - 1]))
+
+        return key
+
+
     def get_marker_ratio(self, present_ab_list, absent_ab_list):
         """
         For all the cells, count the ones with all the markers in ab_seq and return their ratios
@@ -67,6 +93,11 @@ class Patient:
         :param absent_ab_list: Is in format [A,B,C] : means antibodies A, B, and C are absent
         :return:
         """
+
+
+        key = self.get_marker_key(present_ab_list, absent_ab_list)
+        if key in self.marker_ratios:
+            return self.marker_ratios[key]
 
         containing_cell_cnt = 0
         for c in self.cells:
@@ -84,6 +115,7 @@ class Patient:
 
         ratio = float(containing_cell_cnt) / len(self.cells)
 
+        self.marker_ratios[key] = ratio
         return ratio
 
 
