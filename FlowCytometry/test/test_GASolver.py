@@ -96,12 +96,7 @@ class TestGASolver(TestCase):
         res = ga.is_child_unique(0, arr)
         self.assertFalse(res)
 
-    def test_generage_cross_over_indices(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers, c_threshold, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
 
-        inds = ga._generate_cross_over_indices(4)
-
-        self.assertEqual(len(inds), 36)
 
     def test_cross_over(self):
 

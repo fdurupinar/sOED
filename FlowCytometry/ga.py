@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib.patches import Rectangle
 import matplotlib.animation as anim
 from scoreHandler import ScoreHandler
+from staticMethods import StaticMethods
 
 
 ANTIBODY_CNT = 50
@@ -25,7 +26,9 @@ NON_CANCER_MU = 0.3
 NON_CANCER_STD_DEV = 0.1
 
 
-MARKERS = [1, 5, 7, 8]
+# MARKERS = [1, 5, 7, 8]
+MARKERS = [0, 1, 2, 3]
+
 
 class GASolver:
 
@@ -50,24 +53,7 @@ class GASolver:
 
         self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
 
-        self.cross_over_indices = self._generate_cross_over_indices(4)
-
-    @staticmethod
-    def _generate_cross_over_indices(ind_len):
-        """
-        Generate an array of arrays for indices to cross-over
-        :param ind_len:
-        :return:
-        """
-        inds_group = []
-        for i in range(0, ind_len):
-            for j in range(i + 1, ind_len):
-                for k in range(0, ind_len):
-                    for l in range(k + 1, ind_len):
-                        inds = [[i, j], [k, l]]
-                        inds_group.append(inds)
-
-        return inds_group
+        self.cross_over_indices = StaticMethods.generate_cross_over_indices(4)
 
 
     def create_random_population(self):
@@ -126,8 +112,6 @@ class GASolver:
                 return False
         else:
             return True
-
-
 
     def cross_over(self, group1, group2):
         """
@@ -238,8 +222,8 @@ class GASolver:
         """
         val = 0
 
-        if self.score_handler.get_ab_key(child) in self.fitness:
-            val = self.fitness[self.score_handler.get_ab_key(child)]
+        if StaticMethods.get_ab_key(child) in self.fitness:
+            val = self.fitness[StaticMethods.get_ab_key(child)]
 
         return val
 
@@ -252,7 +236,7 @@ class GASolver:
 
         score = self.score_handler.compute_max_precision_for_ab_combination(child, self.c_threshold)
 
-        key = self.score_handler.get_ab_key(child)
+        key = StaticMethods.get_ab_key(child)
         self.fitness[key] = score
 
     def survive_n_fittest(self, generation, n):
@@ -267,13 +251,26 @@ class GASolver:
         fitness = np.sort(fitness)
         threshold = fitness[len(fitness) - n]
 
+        # print fitness
+        # print threshold
         j = 0
         for i in range(len(self.population[generation])):
             child = self.population[generation][i]
-            if self.get_fitness_value(child) >= threshold:
+            if self.get_fitness_value(child) > threshold:
                 self.population[generation + 1][j] = child
                 j += 1
 
+        print j
+        if j < n:  # if we still have some places to fill, then choose the ones equal to the threshold
+            for i in range(len(self.population[generation])):
+                child = self.population[generation][i]
+                if self.get_fitness_value(child) == threshold:
+                    self.population[generation + 1][j] = child
+                    j += 1
+                    if j >= n:
+                        break
+
+        print j
         return j
 
     def find_max_fitness_and_child(self, generation, include_measured):
@@ -301,9 +298,15 @@ class GASolver:
         :return:
         """
 
+        # plt.ion()
+        fig, ax = plt.subplots(subplot_kw={'aspect': 'equal'})
         self.create_random_population()
 
         for i in range(max_gen_cnt-1):
+            # self.visualize_generation(i, fig, ax)
+
+
+            self.plot_generation(i)
 
             # no need to go further if total max fitness is already 1
             total_max_fitness = self.find_max_fitness_and_child(i, True)
@@ -326,7 +329,7 @@ class GASolver:
             self.cross_over_generation(i + 1, new_start_ind)
 
             # mutate the new ones only, not the old ones
-            self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
+            # self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
 
 
             # find fittest unmeasured child
@@ -347,7 +350,80 @@ class GASolver:
 
                 self.experiment_cnt += 1
 
+    def _ab_to_xy(self, ab_arr):
+        """
+        Generate a unique tuple to encode 4 antibodies
+        :param ab_arr:
+        :return: [x, y] representing antibodies' unique position in 2d space
+        """
 
+        x = ab_arr[0] + ab_arr[1] * ANTIBODY_CNT
+        y = ab_arr[2] + ab_arr[3] * ANTIBODY_CNT
+
+        return [x, y]
+
+    def visualize_generation(self, generation, fig, ax):
+        """
+        Draw each ab combination color and size coded
+        :param generation:
+        :param ax:
+        :return:
+        """
+
+
+        fig, ax = plt.subplots(subplot_kw={'aspect': 'equal'})
+        # ax.clear()
+        for ind in range(len(self.population[generation])):
+
+            child = self.population[generation][ind]
+
+            xy = self._ab_to_xy(child)
+            rect = Rectangle(xy=xy, width=0.5, height=0.5, angle=90)
+            ax.add_artist(rect)
+
+            rect.set_clip_box(ax.bbox)
+            alpha = float(child[3]) / ANTIBODY_CNT
+            rgb = [float(child[0])/ANTIBODY_CNT, float(child[1])/ANTIBODY_CNT, float(child[2])/ANTIBODY_CNT/ ANTIBODY_CNT]
+
+            rect.set_alpha(alpha)
+            rect.set_facecolor(rgb)
+
+            fitness = self.get_fitness_value(child)
+            rect.set_width(fitness*100)
+            rect.set_height(fitness*100)
+
+
+        ax.set_xlim(0, ANTIBODY_CNT * ANTIBODY_CNT + 10)
+        ax.set_ylim(0, ANTIBODY_CNT * ANTIBODY_CNT + 10)
+
+
+        plt.show()
+
+
+    def plot_generation(self, generation):
+        """
+        Color code each antibody combination as RGBA
+        :param generation:
+        :return:
+        """
+
+        x_data = np.arange(0, self.population_size)
+
+        y_data = []
+        color_data = []
+        for i in range(self.population_size):
+
+            child = self.population[generation][i][0:4]
+
+            fitness = self.get_fitness_value(child)
+
+            y_data.append(fitness)
+            color_data.append([float(child[0])/ANTIBODY_CNT, float(child[1])/ANTIBODY_CNT, float(child[2])/ANTIBODY_CNT,
+                               float(child[3])/ANTIBODY_CNT])
+
+        plt.bar(x_data, y_data, color=color_data)
+
+        plt.show()
 
     def animate(self, gen_cnt):
         """
@@ -361,6 +437,7 @@ class GASolver:
         rects = [Rectangle(xy=np.random.rand(2) * 10, width=0.5, height=0.5, angle=90) for i in
                  range(self.population_size)]
 
+
         def draw_generation(frame, self, rects):
 
             # for i in range(frame):
@@ -373,9 +450,9 @@ class GASolver:
                 ax.add_artist(rects[ind])
 
                 rects[i].set_clip_box(ax.bbox)
-                alpha = self.population[i][j][3]/255
+                alpha = self.population[i][j][3]/ANTIBODY_CNT
 
-                rgb = self.population[i][j][0:3]/255
+                rgb = self.population[i][j][0:3]/ANTIBODY_CNT
                 rects[ind].set_alpha(alpha)
                 rects[ind].set_facecolor(rgb)
                 rects[ind].set_width(self.get_fitness_value(child))
@@ -386,9 +463,7 @@ class GASolver:
             return ax
 
         ani = anim.FuncAnimation(fig, draw_generation, frames= gen_cnt, fargs=(self, rects), interval=25)
-        # anim.FuncAnimation(fig, draw_generation, frames=gen_cnt, fargs=(self, rects), interval=50)
 
-        # anim.FuncAnimation(fig, draw_generation, frames=10, repeat=False)
 
         ax.set_xlim(0, 10)
         ax.set_ylim(0, 10)
@@ -397,9 +472,40 @@ class GASolver:
         plt.show()
 
 
+    # def plot_input(self):
+    #     """
+    #     Plots the initial data with cells and ab distributions
+    #     :return:
+    #     """
+    #     x_data = []
+    #     y_data = []
+    #
+    #     # PLOT normal patients
+    #     for nc in self.score_handler.patients_nc:
+    #         for p in self.population[0]: # first generation
+    #             child = p[0:4]
+    #
+    #
+    #
+    #     for i in range(self.ab_cnt):
+    #
+    #         x_data.append(i)
+    #         y_data.append(self.get_marker_ratio([i]))
+    #
+    #     plt.plot(x_data, y_data)
+    #
+    #     plt.xlabel('Antibody index')
+    #     plt.ylabel('Marker ratio')
+    #     plt.grid(True)
+    #
+    #     plt.show()
+
+
 #
 gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS, C_THRESHOLD, CELL_CNT, CANCER_MU, CANCER_STD_DEV,
               NON_CANCER_MU, NON_CANCER_STD_DEV)
+
+
 
 gs.run_simulation(MAX_GENERATIONS)
 

@@ -40,6 +40,8 @@ class PatientFactory:
 
 
 
+
+
 # pfc = PatientFactory("c", [0, 1], 10)
 # pfnc = PatientFactory("nc", [0, 1], 10)
 #

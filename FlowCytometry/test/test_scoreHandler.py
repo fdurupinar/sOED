@@ -64,28 +64,6 @@ class TestScoreHandler(TestCase):
         self.assertTrue(sh.is_measured(np.array([3])))
         self.assertFalse(sh.is_measured(np.array([4, 3, 2, 1])), "should be sorted")
 
-    def test_get_unique_combinations(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
-
-        ab_arr = np.array([4, 2, 1, 3])
-
-        combs = sh._get_unique_combinations(ab_arr)
-
-        # there are 16 combinations of an array of length 4
-        self.assertEqual(len(combs), 16)
-
-        self.assertTrue({'p': [1, 2], 'a': [3, 4]} in combs)
-        self.assertTrue({'p': [1, 2, 3, 4], 'a': []} in combs)
-        self.assertTrue({'p': [], 'a': [1, 2, 3, 4]} in combs)
-        self.assertTrue({'p': [1, 3], 'a': [2, 4]} in combs)
-        self.assertTrue({'p': [1], 'a': [2, 3,  4]} in combs)
-        self.assertTrue({'p': [2, 3, 4], 'a': [1]} in combs)
-
-        self.assertFalse({'p': [2, 1], 'a': [4, 3]} in combs, "should be sorted")
-        self.assertFalse({'p': [1, 2], 'a': [1, 3, 4]} in combs, "cannot include same element in both lists")
-        self.assertFalse({'p': [1, 2], 'a': [4]} in combs, "missing element in absent list")
-        self.assertFalse({'p': [1, 2], 'a': [4, 3]} in combs, "should be sorted")
-
     def test_get_independent_groups(self):
         sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
 

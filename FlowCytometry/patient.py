@@ -1,4 +1,6 @@
 import numpy as np
+from staticMethods import StaticMethods
+import matplotlib.pyplot as plt
 
 
 class Patient:
@@ -28,8 +30,9 @@ class Patient:
                 self.ab_percentage_arr[i] = np.random.normal(self.mu,
                                                              self.sigma)  # draw marker probability from a normal distribution
             else:  # draw the rest of the probabilities from a uniform distribution
-                self.ab_percentage_arr[i] = np.random.uniform(0, 1)
-                # self.ab_percentage_arr[i] = 0
+                #TODO try uniform dist
+                # self.ab_percentage_arr[i] = np.random.uniform(0, 1)
+                self.ab_percentage_arr[i] = 0
 
             if self.ab_percentage_arr[i] < 0:
                 self.ab_percentage_arr[i] = 0
@@ -62,55 +65,25 @@ class Patient:
         for i in range(len(self.ab_percentage_arr)):
             self._assign_ab(i, self.ab_percentage_arr[i])
 
-    @staticmethod
-    def get_marker_key(present_ab_list, absent_ab_list):
-        """
-        Encode the lists into keys for dictionary lookup
-        :param present_ab_list:
-        :param absent_ab_list:
-        :return:
-        """
 
-        key = ''
-        if len(present_ab_list) > 0:
-            present_ab_list = np.sort(present_ab_list)
-            for i in range(len(present_ab_list)):
-                key += str(int(present_ab_list[i])) + '-'
-
-        if len(absent_ab_list) > 0:
-            absent_ab_list = np.sort(absent_ab_list)
-            for i in range(len(absent_ab_list) - 1):
-                key += '!' + str(int(absent_ab_list[i])) + '-'
-            key += '!'+ str(int(absent_ab_list[len(absent_ab_list) - 1]))
-
-        return key
-
-
-    def get_marker_ratio(self, present_ab_list, absent_ab_list):
+    def get_marker_ratio(self, ab_list):
         """
         For all the cells, count the ones with all the markers in ab_seq and return their ratios
-        :param present_ab_list: Is in format [A,B,C] : means antibodies A, B, and C are present
-        :param absent_ab_list: Is in format [A,B,C] : means antibodies A, B, and C are absent
+        :param ab_list: Is in format [A,B,C] : means antibodies A, B, and C are present
         :return:
         """
 
-
-        key = self.get_marker_key(present_ab_list, absent_ab_list)
+        key = StaticMethods.get_ab_key(ab_list)
         if key in self.marker_ratios:
             return self.marker_ratios[key]
 
         containing_cell_cnt = 0
         for c in self.cells:
             cnt_pres = 0
-            for ab in present_ab_list:
+            for ab in ab_list:
                 if int(c[ab]) == 1:
                     cnt_pres += 1
-            if cnt_pres >= len(present_ab_list):
-                cnt_absent = 0
-                for ab in absent_ab_list:
-                    if int(c[ab]) != 1:
-                        cnt_absent += 1
-                if cnt_absent >= len(absent_ab_list):
+            if cnt_pres >= len(ab_list):
                     containing_cell_cnt += 1
 
         ratio = float(containing_cell_cnt) / len(self.cells)
@@ -118,12 +91,27 @@ class Patient:
         self.marker_ratios[key] = ratio
         return ratio
 
+    # def plot_patient(self):
+    #
+    #     x_data = []
+    #     y_data = []
+    #
+    #     for i in range(self.ab_cnt):
+    #
+    #         x_data.append(i)
+    #         y_data.append(self.get_marker_ratio([i]))
+    #
+    #     plt.plot(x_data, y_data)
+    #
+    #     plt.xlabel('Antibody index')
+    #     plt.ylabel('Marker ratio')
+    #     plt.grid(True)
+    #
+    #     plt.show()
 
 
-
-
-
-# pt = Patient(10, 5, [1,2], 1, 0.001)
+# pt = Patient(100, 242, [1,2,3,4], 0.8, 0.1)
+# pt.plot_patient()
 # print pt.cells
 # print pt.get_marker_ratio([1,2], [])
 

@@ -61,18 +61,6 @@ class TestPatient(unittest.TestCase):
         self.assertEqual(ratio3, 1)
         self.assertEqual(ratio4, 0)
 
-    def test_get_marker_key(self):
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
-
-        key = p.get_marker_key(np.array([1, 2]), np.array([4, 3]))
-        self.assertEqual(key, "1-2-!3-!4")
-
-        key = p.get_marker_key(np.array([1, 2]), np.array([]))
-        self.assertEqual(key, "1-2-")
-
-        key = p.get_marker_key(np.array([]), np.array([3, 4]))
-        self.assertEqual(key, "!3-!4")
-
 
 if __name__ == '__main__':
     unittest.main()

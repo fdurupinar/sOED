@@ -2,10 +2,7 @@ import numpy as np
 from itertools import combinations
 
 from patientFactory import PatientFactory
-
-
-#A,B,C,D combinations [-,-,-,-],[-,-,-,+], [-,-,+,-]. [-,-,+,+], [-,+,-,-]. [-,+,-,+]. [-,+,+,-], [-,+,+,+].
-#[+,-,-,-],[+,-,-,+], [+,-,+,-]. [+,-,+,+], [+,+,-,-]. [+,+,-,+]. [+,+,+,-], [+,+,+,+]
+from staticMethods import StaticMethods
 
 
 class ScoreHandler:
@@ -24,23 +21,6 @@ class ScoreHandler:
         pf_nc = PatientFactory("nc", ab_cnt, markers, self.nc_cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
         self.patients_nc = pf_nc.patients
 
-
-    @staticmethod
-    def get_ab_key(child):
-        """
-        Encode child list as a string
-        :param child: sorted np array of 4
-        :return:
-
-        """
-        key = ''
-        if len(child) > 0:
-            for i in range(len(child)-1):
-                key += str(int(child[i])) + '-'
-            key += str(int(child[len(child)-1]))
-
-        return key
-
     def is_measured(self, ab_arr):
         """
         Check of ab_arr is measured already
@@ -48,9 +28,8 @@ class ScoreHandler:
         :return:
         """
 
-        key = self.get_ab_key(ab_arr)
+        key = StaticMethods.get_ab_key(ab_arr)
         return key in self.measured_dict
-        # return  ab_arr.tolist() in self.measured_list
 
     def _add_measured(self, ab_arr):
         """
@@ -61,17 +40,8 @@ class ScoreHandler:
 
         ab_arr = np.sort(ab_arr)
 
-        key = self.get_ab_key(ab_arr)
+        key = StaticMethods.get_ab_key(ab_arr)
         self.measured_dict[key] = 0
-
-        # if not self.is_measured(ab_arr):
-        #     self.measured_list.append(ab_arr.tolist())
-
-    def _add_measurement(self, ab_arr, val):
-        ab_arr = np.sort(ab_arr)
-
-        key = self.get_ab_key(ab_arr)
-        self.measured_dict[key] = val
 
     def update_measured(self, ab_arr):
         """
@@ -87,33 +57,6 @@ class ScoreHandler:
 
             for c in comb_arr_unique:
                 self._add_measured(c)
-
-    @staticmethod
-    def _get_unique_combinations(ab_arr):
-        """
-        Returns all the unique combinations of elements given in the antibody array, e.g. [a,b,c,d]
-        :param ab_arr: Unsorted antibody array of 4
-        :return: a dict list of unique 2^4 combinations of present and absent antibodies [{'p':[a,b], 'a':[c,d]}, ...]
-        """
-
-        ab_arr = np.sort(ab_arr)
-
-        zero_arr = np.zeros(len(ab_arr))
-
-        indices = np.concatenate((zero_arr, ab_arr))
-        combs = combinations(indices, len(ab_arr))  # returns them sorted
-
-        # remove duplicates from combinations
-        comb_arr = [c for c in combs]
-        comb_arr_unique = list(set(comb_arr))
-
-        ab_list = []
-        for comb in comb_arr_unique:
-            present_ab = [ab for ab in comb if ab != 0]
-            absent_ab = [ab for ab in ab_arr if ab not in present_ab]
-            ab_list.append({'p': present_ab, 'a': absent_ab})
-
-        return ab_list
 
     def _get_independent_groups(self, ab_list):
         """
@@ -162,7 +105,6 @@ class ScoreHandler:
             combined_el = np.concatenate((combined_el, el))
 
         combined_el = np.sort(combined_el)
-        # if combined_el.tolist() in self.measured_list: # this must have been observed before
         if self.is_measured(combined_el):
             return 0
 
@@ -172,12 +114,11 @@ class ScoreHandler:
 
             # even if one value in the group is unknown, return 0
             el = np.sort(el)
-            # if el.tolist() not in self.measured_list:
             if not self.is_measured(el):
                 return 0
 
             #must be already measured or predicted
-            perc *= patient.get_marker_ratio(el, [])  # no need to consider the absent ones
+            perc *= patient.get_marker_ratio(el)  # no need to consider the absent ones
 
 
         return perc
@@ -212,36 +153,33 @@ class ScoreHandler:
 
         return perc
 
-    def _compute_precision_for_ab_list(self, present_ab_list, absent_ab_list, threshold):
+    def _compute_precision_for_ab_list(self, ab_list, threshold):
         """
         Compute the score for a single ab sequence
-        :param present_ab_list:
-        :param absent_ab_list:
+        :param ab_list: should be sorted
         :param threshold:
         :return:
         """
         nc_marker_cnt = 0
         c_marker_cnt = 0
 
-        full_ab_list = np.concatenate((present_ab_list, absent_ab_list))
-        full_ab_list = np.sort(full_ab_list)
 
         # if full_ab_list.tolist() in self.measured_list:  # read from the experiments
-        if self.is_measured(full_ab_list):
+        if self.is_measured(ab_list):
             for nc in self.patients_nc:
-                if nc.get_marker_ratio(present_ab_list, absent_ab_list) < threshold:
+                if nc.get_marker_ratio(ab_list) < threshold:
                     nc_marker_cnt += 1
 
             for c in self.patients_c:
-                if c.get_marker_ratio(present_ab_list, absent_ab_list) >= threshold:
+                if c.get_marker_ratio(ab_list) >= threshold:
                     c_marker_cnt += 1
         else:
             for nc in self.patients_nc:
-                if self._predict_percentage_for_ab_list(nc, present_ab_list) < threshold:
+                if self._predict_percentage_for_ab_list(nc, ab_list) < threshold:
                     nc_marker_cnt += 1
 
             for c in self.patients_c:
-                if self._predict_percentage_for_ab_list(c, present_ab_list) >= threshold:
+                if self._predict_percentage_for_ab_list(c, ab_list) >= threshold:
                     c_marker_cnt += 1
 
         prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
@@ -257,11 +195,12 @@ class ScoreHandler:
         :return: precision of ab combination
         """
 
-        ab_combinations = self._get_unique_combinations(ab_arr)
+        ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
         max_prec = -1000
         for comb in ab_combinations:
-            prec = self._compute_precision_for_ab_list(comb['p'], comb['a'], threshold)
+            comb = np.sort(comb)
+            prec = self._compute_precision_for_ab_list(comb, threshold)
             if prec > max_prec:
                 max_prec = prec
 
