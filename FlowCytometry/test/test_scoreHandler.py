@@ -14,12 +14,24 @@ nc_sigma = 0.1
 ab_cnt = 5
 c_cnt = 10
 nc_cnt = 10
-markers = [1, 2, 3, 4]
+
+
+c_markers_list = [[1, 2, 3, 4]]
+c_mu_list = [0.99]
+c_sigma_list = [0.1]
+
+
+nc_markers_list = [[1], [2], [3], [4]]
+nc_mu_list = [0.8, 0.8, 0.8, 0.8]
+nc_sigma_list = [0.1, 0.1, 0.1, 0.1]
+
+
 
 class TestScoreHandler(TestCase):
 
     def test_init(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
         self.assertEqual(sh.c_cnt, c_cnt)
         self.assertEqual(sh.nc_cnt, nc_cnt)
 
@@ -27,19 +39,21 @@ class TestScoreHandler(TestCase):
         self.assertEqual(len(sh.patients_c), c_cnt)
 
     def test_is_measured(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
-        arr1 = np.array([1,2])
+        arr1 = np.array([1, 2])
         self.assertFalse(sh.is_measured(arr1))
 
-        sh.measured_list.append([1, 2])
+        sh.measured_dict["1-2"] = 0
         self.assertTrue(sh.is_measured(arr1))
 
         arr2 = np.array([2, 1])
         self.assertFalse(sh.is_measured(arr2))
 
     def test__add_measured(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
         arr1 = np.array([1, 2])
         sh._add_measured(arr1)
@@ -51,9 +65,10 @@ class TestScoreHandler(TestCase):
         self.assertTrue(sh.is_measured(arr2))
 
     def test_update_measured(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
-        ab_arr = np.array([4,2, 1, 3])
+        ab_arr = np.array([4, 2, 1, 3])
 
         sh.update_measured(ab_arr)
 
@@ -65,7 +80,8 @@ class TestScoreHandler(TestCase):
         self.assertFalse(sh.is_measured(np.array([4, 3, 2, 1])), "should be sorted")
 
     def test_get_independent_groups(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
         groups = sh._get_independent_groups([1, 2])
 
@@ -92,33 +108,38 @@ class TestScoreHandler(TestCase):
         self.assertNotIn([[4], [3], [2], [1]], groups, "should be sorted")
 
     def test_predict_percentage_for_group_intesection(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(10, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
-        sh.update_measured([1, 2, 3, 4])
+        sh._add_measured([5])
+        sh._add_measured([6])
+        sh._add_measured([7])
+        sh._add_measured([8])
+
         patient = sh.patients_c[0]
 
-        p1 = patient.get_marker_ratio([1], [])
-        p2 = patient.get_marker_ratio([2], [])
-        p3 = patient.get_marker_ratio([3], [])
-        p4 = patient.get_marker_ratio([4], [])
+        p1 = patient.get_marker_ratio([5], False)
+        p2 = patient.get_marker_ratio([6], False)
+        p3 = patient.get_marker_ratio([7], False)
+        p4 = patient.get_marker_ratio([8], False)
 
-        perc = sh._predict_percentage_for_group_intersection(patient, [[1], [2], [3], [4]])
+        perc = sh._predict_percentage_for_group_intersection(patient, [[5], [6], [7], [8]])
 
-        self.assertAlmostEqual(perc, p1 * p2 * p3 * p4)
+        self.assertEqual(perc, p1 * p2 * p3 * p4)
 
-        p12 = patient.get_marker_ratio([1, 2], [])
-        p34 = patient.get_marker_ratio([3, 4], [])
+        sh._add_measured([5, 6])
+        sh._add_measured([7, 8])
 
-        perc = sh._predict_percentage_for_group_intersection(patient, [[1, 2], [3, 4]])
+        p12 = patient.get_marker_ratio([5, 6], False)
+        p34 = patient.get_marker_ratio([7, 8], False)
+
+        perc = sh._predict_percentage_for_group_intersection(patient, [[5, 6], [7, 8]])
         self.assertAlmostEqual(perc, p12 * p34)
 
-        p1234 = patient.get_marker_ratio([1, 2, 3, 4], [])
-
-        perc = sh._predict_percentage_for_group_intersection(patient, [[1, 2, 3, 4]])
-        self.assertAlmostEqual(perc, p1234)
 
     def test_predict_percentage_for_ab_list(self):
-        sh = ScoreHandler(ab_cnt, c_cnt, nc_cnt, [1, 2],  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
         sh.update_measured([1, 2])
         patient = sh.patients_c[0]
@@ -130,25 +151,27 @@ class TestScoreHandler(TestCase):
         self.assertEqual(perc, (perc1 + perc2)/2)
 
     def test_compute_precision_for_ab_list(self):
-        sh = ScoreHandler(ab_cnt, 1, 1, [1, 2],  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)  # 1 patient each
+        sh = ScoreHandler(10, 1, 1, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
         # already measured
-        sh.update_measured([1, 2])
+        sh.update_measured([5, 6, 7, 8])
 
-        prec = sh._compute_precision_for_ab_list([1, 2], [], 1)
+        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8], 1)
         self.assertEqual(prec, 0.5)
 
-        prec = sh._compute_precision_for_ab_list([1, 2], [], 0)
+        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8], 0)
         self.assertEqual(prec, 0.5)
 
-        prec = sh._compute_precision_for_ab_list([1, 2], [], 0.4)
+        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8] , 0.4)
         self.assertGreaterEqual(prec, 0.5)
 
     def test_compute_max_precision_for_ab_combination(self):
-        sh = ScoreHandler(5, 1, 1, [1, 2, 3, 4],  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)  # 1 patient each
+        sh = ScoreHandler(5, 1, 1, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
 
         # already measured
-        sh.update_measured([1, 2, 3, 4])
+        sh.update_measured([1, 2, 3, 4])  # markers list
 
         prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 4, 3]), 0)
         self.assertEqual(prec, 0.5)
@@ -160,7 +183,8 @@ class TestScoreHandler(TestCase):
         self.assertGreaterEqual(prec, 0.5)
 
         #  clear sh and customly assign patients
-        sh = ScoreHandler(5, 2, 2, [1, 2],  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)  # 2 patients each
+        sh = ScoreHandler(5, 2, 2, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
         sh.update_measured([1, 2])
         #
         sh.patients_c = []

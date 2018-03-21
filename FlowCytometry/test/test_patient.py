@@ -4,62 +4,45 @@ import numpy as np
 
 ab_cnt = 5
 cell_cnt = 10
-markers = [1, 2]
-mu = 0.5
-sigma = 0.1
+markers_list = [[1, 2, 3], [4]]
+mu_list = [0.5, 0.1]
+sigma_list = [0.1, 0.1]
 
 
 class TestPatient(unittest.TestCase):
 
     def test_init(self):
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
+        p = Patient(cell_cnt, ab_cnt, markers_list, mu_list, sigma_list)
         self.assertEqual(len(p.cells), cell_cnt)
         self.assertEqual(p.ab_cnt, ab_cnt)
-        self.assertEqual(p.markers, markers)
-        self.assertEqual(p.mu, mu)
-        self.assertEqual(p.sigma, sigma)
+        self.assertEqual(p.markers_list, markers_list)
+        self.assertEqual(p.mu_list, mu_list)
+        self.assertEqual(p.sigma_list, sigma_list)
 
-    def test_compute_ab_percentages(self):
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
 
-        p._compute_ab_percentages()
+    def test_fill_in_cells(self):
+        p = Patient(cell_cnt, ab_cnt, markers_list, mu_list,  sigma_list)
 
-        for i in range(ab_cnt):
-            self.assertGreaterEqual(p.ab_percentage_arr[i], 0)
-            self.assertLessEqual(p.ab_percentage_arr[i], 1)
-
-    def test_assign_ab(self):
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
-
-        #  make sure all the cells for antibody "1" are assigned to 1
-        p._assign_ab(1, 1)
-
-        for c in p.cells:
-            self.assertEqual(c[1], 1)
-
-    def test_assign_all_antibodies(self):
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
-        p._assign_all_antibodies()
-
-        for c in p.cells:
-            for i in range(ab_cnt):
-                self.assertGreaterEqual(c[i], 0)
-                self.assertLessEqual(c[i], 1)
+        self.assertFalse(p.is_marker_arr[0])
+        self.assertTrue(p.is_marker_arr[1])
+        self.assertTrue(p.is_marker_arr[2])
+        self.assertTrue(p.is_marker_arr[3])
+        self.assertTrue(p.is_marker_arr[4])
 
     def test_get_marker_ratio(self):
-        mu = 1
-        sigma = 0.0001
-        p = Patient(cell_cnt, ab_cnt, markers, mu, sigma)
+        mu_list2 = [1, 0.01]
+        sigma_list2 = [0.0001, 0.0001]
 
-        ratio1 = p.get_marker_ratio([1], [])
-        ratio2 = p.get_marker_ratio([2], [])
-        ratio3 = p.get_marker_ratio([1, 2], [])
-        ratio4 = p.get_marker_ratio([1], [2])
+        p = Patient(cell_cnt, ab_cnt, markers_list, mu_list2, sigma_list2)
+
+        # print p.is_marker_arr
+        # print p.cells
+
+        ratio1 = p.get_marker_ratio([1, 2, 3], False)
+        ratio2 = p.get_marker_ratio([4], False)
 
         self.assertEqual(ratio1, 1)
-        self.assertEqual(ratio2, 1)
-        self.assertEqual(ratio3, 1)
-        self.assertEqual(ratio4, 0)
+        self.assertEqual(ratio2, 0)
 
 
 if __name__ == '__main__':

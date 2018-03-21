@@ -4,27 +4,22 @@ from patientFactory import PatientFactory
 
 cell_cnt = 100
 
-c_mu = 0.7
-c_sigma = 0.1
+c_mu_list = [0.7, 0.5]
+c_sigma_list = [0.1, 0.1]
 
-nc_mu = 0.3
-nc_sigma = 0.1
+nc_mu_list = [0.3, 0.2]
+nc_sigma_list = [0.1, 0.1]
 
 ab_cnt = 5
 cell_cnt = 10
-markers = [1, 2]
+markers_list = [[1, 2], [3]]
+
 
 class TestPatientFactory(TestCase):
 
     def test_init(self):
-        pfnc = PatientFactory("nc", ab_cnt, markers, 5, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
-        pfc = PatientFactory("c", ab_cnt, markers, 5, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
-
-        self.assertEqual(pfnc.mu, nc_mu)
-        self.assertEqual(pfnc.sigma, nc_sigma)
-
-        self.assertEqual(pfc.mu, c_mu)
-        self.assertEqual(pfc.sigma, c_sigma)
+        pfnc = PatientFactory(5, ab_cnt, markers_list, cell_cnt, c_mu_list, c_sigma_list)
+        pfc = PatientFactory(5, ab_cnt, markers_list,  cell_cnt, nc_mu_list, nc_sigma_list)
 
         self.assertEqual(len(pfnc.patients), 5)
         self.assertEqual(len(pfc.patients), 5)

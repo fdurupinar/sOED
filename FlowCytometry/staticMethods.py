@@ -25,6 +25,21 @@ class StaticMethods:
         return key
 
     @staticmethod
+    def key_to_ab(key):
+        """
+        Decode key string into antibody indices
+        :param key: str
+        :return:
+
+        """
+
+        child = key.split("-")
+
+        child = [int(c) for c in child]
+
+        return child
+
+    @staticmethod
     def generate_cross_over_indices(ind_len):
         """
         Generate an array of arrays for indices to cross-over

@@ -7,7 +7,7 @@ from staticMethods import StaticMethods
 
 class ScoreHandler:
 
-    def __init__(self, ab_cnt, nc_cnt, c_cnt, markers, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma):
+    def __init__(self, ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list):
 
         self.measured_list = []  # already measured, sorted ab sequences
 
@@ -16,9 +16,10 @@ class ScoreHandler:
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory("c", ab_cnt, markers, self.c_cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        pf_c = PatientFactory(self.c_cnt, ab_cnt, c_markers_list,  cell_cnt, c_mu_list, c_sigma_list)
+
         self.patients_c = pf_c.patients
-        pf_nc = PatientFactory("nc", ab_cnt, markers, self.nc_cnt, cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        pf_nc = PatientFactory(self.nc_cnt, ab_cnt, nc_markers_list, cell_cnt,  nc_mu_list, nc_sigma_list)
         self.patients_nc = pf_nc.patients
 
     def is_measured(self, ab_arr):
@@ -34,7 +35,7 @@ class ScoreHandler:
     def _add_measured(self, ab_arr):
         """
         After sorting it, add ab_arr to the measured list if it doesn't exist already
-        :param ab_arr:
+        :param ab_arr: Can be of any length and unsorted
         :return:
         """
 
@@ -118,7 +119,7 @@ class ScoreHandler:
                 return 0
 
             #must be already measured or predicted
-            perc *= patient.get_marker_ratio(el)  # no need to consider the absent ones
+            perc *= patient.get_marker_ratio(el, True)  # no need to consider the absent ones
 
 
         return perc
@@ -167,11 +168,11 @@ class ScoreHandler:
         # if full_ab_list.tolist() in self.measured_list:  # read from the experiments
         if self.is_measured(ab_list):
             for nc in self.patients_nc:
-                if nc.get_marker_ratio(ab_list) < threshold:
+                if nc.get_marker_ratio(ab_list, True) < threshold:
                     nc_marker_cnt += 1
 
             for c in self.patients_c:
-                if c.get_marker_ratio(ab_list) >= threshold:
+                if c.get_marker_ratio(ab_list, True) >= threshold:
                     c_marker_cnt += 1
         else:
             for nc in self.patients_nc:
@@ -203,8 +204,51 @@ class ScoreHandler:
             prec = self._compute_precision_for_ab_list(comb, threshold)
             if prec > max_prec:
                 max_prec = prec
+        return max_prec
+
+    #########################################################################
+    #  DEBUGGING METHODS
+    ########################################################################
+
+    def _compute_unmeasured_precision_for_ab_list(self, ab_list, threshold):
+        """
+        Compute the score for a single ab sequence
+        :param ab_list: should be sorted
+        :param threshold:
+        :return:
+        """
+        nc_marker_cnt = 0
+        c_marker_cnt = 0
+
+        for nc in self.patients_nc:
+            if nc.get_marker_ratio(ab_list, False) < threshold:
+                nc_marker_cnt += 1
+
+        for c in self.patients_c:
+            if c.get_marker_ratio(ab_list, False) >= threshold:
+                c_marker_cnt += 1
+
+        prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
+
+        return prec
+
+    def compute_max_possible_precision(self, ab_arr, threshold):
+        ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
+
+        print "Marker precisions"
+
+        max_prec = -1000
+        for comb in ab_combinations:
+            comb = np.sort(comb)
+            prec = self._compute_unmeasured_precision_for_ab_list(comb, threshold)
+
+            str_comb = ', '.join(str(i) for i in comb)
+            print '[' + str_comb + "] " + str(prec)
+            if prec > max_prec:
+                max_prec = prec
 
         return max_prec
+
 
 # sg = ScoreHandler(20,20,20)
 # print sg.get_independent_groups([1,2,3,4])

@@ -28,7 +28,7 @@ class TestGASolver(TestCase):
         self.assertEqual(ga.antibody_cnt, antibody_cnt)
         self.assertEqual(ga.nc_cnt, nc_cnt)
         self.assertEqual(ga.c_cnt, c_cnt)
-        self.assertEqual(ga.markers, markers)
+        self.assertEqual(ga.markers_list, markers)
         self.assertEqual(ga.c_threshold, c_threshold)
         self.assertEqual(ga.total_population, population_size)
 

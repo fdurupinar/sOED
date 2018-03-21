@@ -5,71 +5,56 @@ import matplotlib.pyplot as plt
 
 class Patient:
 
-    def __init__(self, cell_cnt, ab_cnt, markers, mu, sigma):
+    def __init__(self, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
 
         self.cells = np.zeros([cell_cnt, ab_cnt])  # each cell has ab_cnt bins, which can be filled with markers or not
         self.ab_cnt = ab_cnt
-        self.ab_percentage_arr = np.zeros([ab_cnt])
-        self.mu = mu
-        self.sigma = sigma
-        self.markers = markers
+        # self.ab_percentage_arr = np.full((ab_cnt), -1, dtype=np.int)
+        self.is_marker_arr = np.full((ab_cnt), False, dtype=np.bool)
+        self.mu_list = mu_list
+        self.sigma_list = sigma_list
+        self.markers_list = markers_list
 
-        self._compute_ab_percentages()
-        self._assign_all_antibodies()
+        # self._compute_ab_percentages()
+        # self._assign_all_antibodies()
 
+        self._fill_in_cells()
         self.marker_ratios = {}
 
-    def _compute_ab_percentages(self):
+    def _fill_in_cells(self):
         """
         Fill in the percentages array for each antibody
         :return:
         """
 
+        # first fill in the percentages for markers
+        for i in range(len(self.markers_list)):
+            prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
+            for m in self.markers_list[i]:
+                # assign cells of that antibody group to 1 with that percentage
+                for j in range(len(self.cells)):
+                    val = np.random.uniform(0, 1)
+                    if val <= prob:
+                        self.cells[j][m] = 1
+                self.is_marker_arr[m] = True
+
+        # then fill in the rest of the antibodies drawing their ratios from a uniform distribution
         for i in range(self.ab_cnt):  # for each protein
-            if i in self.markers:
-                self.ab_percentage_arr[i] = np.random.normal(self.mu,
-                                                             self.sigma)  # draw marker probability from a normal distribution
-            else:  # draw the rest of the probabilities from a uniform distribution
-                #TODO try uniform dist
-                # self.ab_percentage_arr[i] = np.random.uniform(0, 1)
-                self.ab_percentage_arr[i] = 0
+            if not self.is_marker_arr[i]:  # not in the marker group
+                # TODO uniform dist
+                # prob = np.random.uniform(0, 1)
+                # prob = 0.5
+                prob = 0
+                for j in range(len(self.cells)):
+                    val = np.random.uniform(0, 1)
+                    if val <= prob:
+                        self.cells[j][i] = 1
 
-            if self.ab_percentage_arr[i] < 0:
-                self.ab_percentage_arr[i] = 0
-            if self.ab_percentage_arr[i] > 1:
-                self.ab_percentage_arr[i] = 1
-
-    def _assign_ab(self, ab, prob):
-        """
-        Assign an antibody with index ab with a probability prob
-        :param ab: Antibody id 
-        :param prob: Probability between 0, 1 
-        :return: 
-        """
-
-        for i in range(len(self.cells)):
-            val = np.random.uniform(0, 1)
-            if val <= prob:
-                self.cells[i][ab] = 1
-            # else:
-            #     self.cells[i][ab] = -1
-
-
-        return
-
-    def _assign_all_antibodies(self):
-        """
-        Assigns all the antibodies according to the probabilities in prob_arr
-        """
-
-        for i in range(len(self.ab_percentage_arr)):
-            self._assign_ab(i, self.ab_percentage_arr[i])
-
-
-    def get_marker_ratio(self, ab_list):
+    def get_marker_ratio(self, ab_list, to_be_recorded):
         """
         For all the cells, count the ones with all the markers in ab_seq and return their ratios
         :param ab_list: Is in format [A,B,C] : means antibodies A, B, and C are present
+        :param to_be_recorded:
         :return:
         """
 
@@ -88,29 +73,30 @@ class Patient:
 
         ratio = float(containing_cell_cnt) / len(self.cells)
 
-        self.marker_ratios[key] = ratio
+        if to_be_recorded:
+            self.marker_ratios[key] = ratio
         return ratio
 
-    # def plot_patient(self):
-    #
-    #     x_data = []
-    #     y_data = []
-    #
-    #     for i in range(self.ab_cnt):
-    #
-    #         x_data.append(i)
-    #         y_data.append(self.get_marker_ratio([i]))
-    #
-    #     plt.plot(x_data, y_data)
-    #
-    #     plt.xlabel('Antibody index')
-    #     plt.ylabel('Marker ratio')
-    #     plt.grid(True)
-    #
-    #     plt.show()
+    def plot_patient(self):
+
+        x_data = []
+        y_data = []
+
+        for i in range(self.ab_cnt):
+
+            x_data.append(i)
+            y_data.append(self.get_marker_ratio([i], False))
+
+        plt.plot(x_data, y_data)
+
+        plt.xlabel('Antibody index')
+        plt.ylabel('Marker ratio')
+        plt.grid(True)
+
+        plt.show()
 
 
-# pt = Patient(100, 242, [1,2,3,4], 0.8, 0.1)
+# pt = Patient(100, 240, [[1, 2, 3, 4]], [0.8], [0.1])
 # pt.plot_patient()
 # print pt.cells
 # print pt.get_marker_ratio([1,2], [])
