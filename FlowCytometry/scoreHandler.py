@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 from itertools import combinations
 
 from patientFactory import PatientFactory
@@ -161,30 +162,36 @@ class ScoreHandler:
         :param threshold:
         :return:
         """
-        nc_marker_cnt = 0
-        c_marker_cnt = 0
-
+        # nc_marker_cnt = 0
+        # c_marker_cnt = 0
 
         # if full_ab_list.tolist() in self.measured_list:  # read from the experiments
         if self.is_measured(ab_list):
-            for nc in self.patients_nc:
-                if nc.get_marker_ratio(ab_list, True) < threshold:
-                    nc_marker_cnt += 1
+            group1 = [nc.get_marker_ratio(ab_list, True) for nc in self.patients_nc]
+            group2 = [c.get_marker_ratio(ab_list, True) for c in self.patients_c]
 
-            for c in self.patients_c:
-                if c.get_marker_ratio(ab_list, True) >= threshold:
-                    c_marker_cnt += 1
+            # for nc in self.patients_nc:
+            #     if nc.get_marker_ratio(ab_list, True) < threshold:
+            #         nc_marker_cnt += 1
+            #
+            # for c in self.patients_c:
+            #     if c.get_marker_ratio(ab_list, True) >= threshold:
+            #         c_marker_cnt += 1
         else:
-            for nc in self.patients_nc:
-                if self._predict_percentage_for_ab_list(nc, ab_list) < threshold:
-                    nc_marker_cnt += 1
+            group1 = [self._predict_percentage_for_ab_list(nc, ab_list) for nc in self.patients_nc]
+            group2 = [self._predict_percentage_for_ab_list(c, ab_list) for c in self.patients_c]
 
-            for c in self.patients_c:
-                if self._predict_percentage_for_ab_list(c, ab_list) >= threshold:
-                    c_marker_cnt += 1
+            # for nc in self.patients_nc:
+            #     if self._predict_percentage_for_ab_list(nc, ab_list) < threshold:
+            #         nc_marker_cnt += 1
+            #
+            # for c in self.patients_c:
+            #     if self._predict_percentage_for_ab_list(c, ab_list) >= threshold:
+            #         c_marker_cnt += 1
 
-        prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
+        # prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
 
+        prec = abs(stats.ttest_ind(group1, group2)[0])
         return prec
 
 
@@ -217,18 +224,23 @@ class ScoreHandler:
         :param threshold:
         :return:
         """
-        nc_marker_cnt = 0
-        c_marker_cnt = 0
 
-        for nc in self.patients_nc:
-            if nc.get_marker_ratio(ab_list, False) < threshold:
-                nc_marker_cnt += 1
+        group1 = [nc.get_marker_ratio(ab_list, False) for nc in self.patients_nc]
+        group2 = [c.get_marker_ratio(ab_list, False) for c in self.patients_c]
+        prec = abs(stats.ttest_ind(group1, group2)[0])
 
-        for c in self.patients_c:
-            if c.get_marker_ratio(ab_list, False) >= threshold:
-                c_marker_cnt += 1
-
-        prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
+        # nc_marker_cnt = 0
+        # c_marker_cnt = 0
+        #
+        # for nc in self.patients_nc:
+        #     if nc.get_marker_ratio(ab_list, False) < threshold:
+        #         nc_marker_cnt += 1
+        #
+        # for c in self.patients_c:
+        #     if c.get_marker_ratio(ab_list, False) >= threshold:
+        #         c_marker_cnt += 1
+        #
+        # prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
 
         return prec
 

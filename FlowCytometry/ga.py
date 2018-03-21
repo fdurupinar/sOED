@@ -29,7 +29,7 @@ CANCER_STD_DEV_LIST = [0.1]
 NC_MARKERS_LIST = [[10], [20], [30], [40]]
 NON_CANCER_MU_LIST = [0.6, 0.6, 0.6, 0.6]
 NON_CANCER_STD_DEV_LIST = [0.1, 0.1, 0.1, 0.1]
-
+1
 VISUALIZE_POPULATION = True
 
 class GASolver:
@@ -314,7 +314,7 @@ class GASolver:
 
             # no need to go further if total max fitness is already 1
             total_max_fitness = self.find_max_fitness_and_child(i, True)
-            if total_max_fitness['fitness'] >= 1:
+            if total_max_fitness['fitness'] >=  self.max_possible_fitness:  # 1:
                 print "Success: "
                 print total_max_fitness['child']
                 break
