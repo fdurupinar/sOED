@@ -1,6 +1,5 @@
 import unittest
-from patient import Patient
-import numpy as np
+from ga.patient import Patient
 
 ab_cnt = 5
 cell_cnt = 10

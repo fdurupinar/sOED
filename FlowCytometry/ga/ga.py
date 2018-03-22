@@ -15,7 +15,6 @@ MAX_GENERATIONS = 1000
 NC_CNT = 20  # non-cancer patients
 C_CNT = 20  # cancer patients
 
-
 CELL_CNT = 100
 
 C_MARKERS_LIST = [[10, 20, 30, 40]]
@@ -27,7 +26,7 @@ NC_MARKERS_LIST = [[10], [20], [30], [40]]
 NON_CANCER_MU_LIST = [0.6, 0.6, 0.6, 0.6]
 NON_CANCER_STD_DEV_LIST = [0.1, 0.1, 0.1, 0.1]
 
-VISUALIZE_POPULATION = False
+VISUALIZE_POPULATION = True
 
 class GASolver:
 
@@ -305,8 +304,8 @@ class GASolver:
 
         for i in range(max_gen_cnt-1):
             if VISUALIZE_POPULATION:
-                # self.visualize_generation(i, fig, ax)
-                self.plot_generation(i)
+                self.visualize_generation(i, fig, ax)
+                # self.plot_generation(i)
 
             # no need to go further if total max fitness is already 1
             total_max_fitness = self.find_max_fitness_and_child(i, True)

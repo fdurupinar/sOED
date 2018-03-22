@@ -1,6 +1,6 @@
 from unittest import TestCase
-from scoreHandler import ScoreHandler
-from patient import Patient
+from ga.scoreHandler import ScoreHandler
+from ga.patient import Patient
 import numpy as np
 
 cell_cnt = 100

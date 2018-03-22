@@ -17,11 +17,11 @@ class ScoreHandler:
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory(self.c_cnt, ab_cnt, c_markers_list,  cell_cnt, c_mu_list, c_sigma_list)
+        self.pf_c = PatientFactory(self.c_cnt, ab_cnt, c_markers_list,  cell_cnt, c_mu_list, c_sigma_list)
 
-        self.patients_c = pf_c.patients
-        pf_nc = PatientFactory(self.nc_cnt, ab_cnt, nc_markers_list, cell_cnt,  nc_mu_list, nc_sigma_list)
-        self.patients_nc = pf_nc.patients
+        self.patients_c = self.pf_c.patients
+        self.pf_nc = PatientFactory(self.nc_cnt, ab_cnt, nc_markers_list, cell_cnt,  nc_mu_list, nc_sigma_list)
+        self.patients_nc = self.pf_nc.patients
 
     def is_measured(self, ab_arr):
         """
@@ -136,7 +136,7 @@ class ScoreHandler:
         """
 
         if len(ab_list) == 0:
-            return 0
+            return [0, 0]
 
         # Create groups of combinations
         groups = self._get_independent_groups(ab_list)
@@ -176,7 +176,8 @@ class ScoreHandler:
             mu_sigma2 = self._predict_percentage_for_ab_list(self.pf_c, ab_list)
             prec = abs(stats.ttest_ind_from_stats(mu_sigma1[0], mu_sigma1[1], len(self.patients_nc),
                                                   mu_sigma2[0], mu_sigma2[1], len(self.patients_c))[0])
-
+            if prec != prec:  # NaN
+                prec = 0
         return prec
 
     def compute_max_precision_for_ab_combination(self, ab_arr):
@@ -210,6 +211,8 @@ class ScoreHandler:
         group1 = [nc.get_marker_ratio(ab_list, False) for nc in self.patients_nc]
         group2 = [c.get_marker_ratio(ab_list, False) for c in self.patients_c]
         prec = abs(stats.ttest_ind(group1, group2)[0])
+        if prec != prec:  # NaN
+            prec = 0
 
         return prec
 

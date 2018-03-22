@@ -1,5 +1,5 @@
 from unittest import TestCase
-from patientFactory import PatientFactory
+from ga.patientFactory import PatientFactory
 
 
 cell_cnt = 100

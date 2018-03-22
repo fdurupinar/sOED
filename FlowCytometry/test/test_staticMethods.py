@@ -1,5 +1,5 @@
 from unittest import TestCase
-from staticMethods import StaticMethods
+from ga.staticMethods import StaticMethods
 import numpy as np
 
 class TestStaticMethods(TestCase):
