@@ -75,6 +75,8 @@ class Patient:
 
         if to_be_recorded:
             self.marker_ratios[key] = ratio
+
+
         return ratio
 
     def plot_patient(self):

@@ -92,12 +92,12 @@ class ScoreHandler:
 
         return groups
 
-    def _predict_percentage_for_group_intersection(self, patient, group):
+    def _predict_percentage_for_group_intersection(self, patient_factory, group):
         """
         :param self:
-        :param patient: patient_arr[patient_ind]
+        :param patients:
         :param group: a double array to show antibody sequences, e.g. [[a,b], [c]]
-        :return: Independence assumption: precision([a,b]) * precision([c])
+        :return: mean and standard deviation of the intersection of distributions
         """
 
         perc = 1
@@ -108,29 +108,29 @@ class ScoreHandler:
 
         combined_el = np.sort(combined_el)
         if self.is_measured(combined_el):
-            return 0
+            return [0, 0]
 
         # if a combined value is known, skip this group
         # e.g. if ab is known, no need to predict a * b
+        mu_sigma_list = []
         for el in group:
 
             # even if one value in the group is unknown, return 0
             el = np.sort(el)
             if not self.is_measured(el):
-                return 0
+                return [0, 0]
 
-            #must be already measured or predicted
-            perc *= patient.get_marker_ratio(el, True)  # no need to consider the absent ones
+            mu_sigma = patient_factory.get_marker_mean_and_variance(el, True)
+            mu_sigma_list.append(mu_sigma)
 
+        return StaticMethods.find_gaussian_intersection(mu_sigma_list)
 
-        return perc
-
-    def _predict_percentage_for_ab_list(self, patient, ab_list):
+    def _predict_percentage_for_ab_list(self, patient_factory, ab_list):
         """
         Computes all possible independent groups and finds their average precision
         E.g. for sequence (a,b,c) it looks at 5 groups of a*b*c, a*cd, ab*c, bc*a, abc etc.
         Doesn't try to make predictions for unknown values. It uses already measured values
-        :param patient:
+        :param patient_factory:
         :param ab_list: could be any length
         :return: mean value of all the possible groups with already measured values
         """
@@ -141,65 +141,48 @@ class ScoreHandler:
         # Create groups of combinations
         groups = self._get_independent_groups(ab_list)
 
-        perc = 0
+        mu_sum = 0
+        sigma_sum = 0
         cnt = 0
         for g in groups:
-            perc += self._predict_percentage_for_group_intersection(patient, g)
-            if perc > 0:
+            mu_sigma= self._predict_percentage_for_group_intersection(patient_factory, g)
+            mu_sum += mu_sigma[0]
+            sigma_sum += mu_sigma[1]
+            if not mu_sigma[0] == 0:
                 cnt += 1  # ignore the 0 values -- unmeasured ones
 
         if cnt > 0:
-            perc /= cnt
+            perc = [mu_sum/cnt, sigma_sum/cnt]
         else:
-            perc = 0
+            perc = [0, 0]
 
         return perc
 
-    def _compute_precision_for_ab_list(self, ab_list, threshold):
+    def _compute_precision_for_ab_list(self, ab_list):
         """
         Compute the score for a single ab sequence
         :param ab_list: should be sorted
-        :param threshold:
         :return:
         """
-        # nc_marker_cnt = 0
-        # c_marker_cnt = 0
 
-        # if full_ab_list.tolist() in self.measured_list:  # read from the experiments
         if self.is_measured(ab_list):
+            # group1 = self.pf_c.get_marker_mean_and_variance(ab_list, True)
+            # group2 = self.pf_nc.get_marker_mean_and_variance(ab_list, True)
             group1 = [nc.get_marker_ratio(ab_list, True) for nc in self.patients_nc]
             group2 = [c.get_marker_ratio(ab_list, True) for c in self.patients_c]
-
-            # for nc in self.patients_nc:
-            #     if nc.get_marker_ratio(ab_list, True) < threshold:
-            #         nc_marker_cnt += 1
-            #
-            # for c in self.patients_c:
-            #     if c.get_marker_ratio(ab_list, True) >= threshold:
-            #         c_marker_cnt += 1
+            prec = abs(stats.ttest_ind(group1, group2)[0])
         else:
-            group1 = [self._predict_percentage_for_ab_list(nc, ab_list) for nc in self.patients_nc]
-            group2 = [self._predict_percentage_for_ab_list(c, ab_list) for c in self.patients_c]
+            mu_sigma1 = self._predict_percentage_for_ab_list(self.pf_nc, ab_list)
+            mu_sigma2 = self._predict_percentage_for_ab_list(self.pf_c, ab_list)
+            prec = abs(stats.ttest_ind_from_stats(mu_sigma1[0], mu_sigma1[1], len(self.patients_nc),
+                                                  mu_sigma2[0], mu_sigma2[1], len(self.patients_c))[0])
 
-            # for nc in self.patients_nc:
-            #     if self._predict_percentage_for_ab_list(nc, ab_list) < threshold:
-            #         nc_marker_cnt += 1
-            #
-            # for c in self.patients_c:
-            #     if self._predict_percentage_for_ab_list(c, ab_list) >= threshold:
-            #         c_marker_cnt += 1
-
-        # prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
-
-        prec = abs(stats.ttest_ind(group1, group2)[0])
         return prec
 
-
-    def compute_max_precision_for_ab_combination(self, ab_arr, threshold):
+    def compute_max_precision_for_ab_combination(self, ab_arr):
         """
         Compute all the scores for 16 combinations and find the maximum
         :param ab_arr: 4 antibodies listed in an unsorted way
-        :param threshold:
         :return: precision of ab combination
         """
 
@@ -208,7 +191,7 @@ class ScoreHandler:
         max_prec = -1000
         for comb in ab_combinations:
             comb = np.sort(comb)
-            prec = self._compute_precision_for_ab_list(comb, threshold)
+            prec = self._compute_precision_for_ab_list(comb)
             if prec > max_prec:
                 max_prec = prec
         return max_prec
@@ -217,11 +200,10 @@ class ScoreHandler:
     #  DEBUGGING METHODS
     ########################################################################
 
-    def _compute_unmeasured_precision_for_ab_list(self, ab_list, threshold):
+    def _compute_unmeasured_precision_for_ab_list(self, ab_list):
         """
         Compute the score for a single ab sequence
         :param ab_list: should be sorted
-        :param threshold:
         :return:
         """
 
@@ -229,22 +211,9 @@ class ScoreHandler:
         group2 = [c.get_marker_ratio(ab_list, False) for c in self.patients_c]
         prec = abs(stats.ttest_ind(group1, group2)[0])
 
-        # nc_marker_cnt = 0
-        # c_marker_cnt = 0
-        #
-        # for nc in self.patients_nc:
-        #     if nc.get_marker_ratio(ab_list, False) < threshold:
-        #         nc_marker_cnt += 1
-        #
-        # for c in self.patients_c:
-        #     if c.get_marker_ratio(ab_list, False) >= threshold:
-        #         c_marker_cnt += 1
-        #
-        # prec = float(c_marker_cnt + nc_marker_cnt) / (self.c_cnt + self.nc_cnt)
-
         return prec
 
-    def compute_max_possible_precision(self, ab_arr, threshold):
+    def compute_max_possible_precision(self, ab_arr):
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
         print "Marker precisions"
@@ -252,7 +221,7 @@ class ScoreHandler:
         max_prec = -1000
         for comb in ab_combinations:
             comb = np.sort(comb)
-            prec = self._compute_unmeasured_precision_for_ab_list(comb, threshold)
+            prec = self._compute_unmeasured_precision_for_ab_list(comb)
 
             str_comb = ', '.join(str(i) for i in comb)
             print '[' + str_comb + "] " + str(prec)

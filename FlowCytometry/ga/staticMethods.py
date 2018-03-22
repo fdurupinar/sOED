@@ -67,7 +67,6 @@ class StaticMethods:
 
         ab_arr = np.sort(ab_arr)
 
-
         zero_arr = np.full(len(ab_arr), 0, dtype=np.int)
 
         indices = np.concatenate((zero_arr, ab_arr))
@@ -83,3 +82,21 @@ class StaticMethods:
             ab_list.append(present_ab)
 
         return ab_list
+
+    @staticmethod
+    def find_gaussian_intersection(mu_std_list):
+
+        mu_int = mu_std_list[0][0]
+        std_int = mu_std_list[0][1]
+
+        i = 1
+        while i < len(mu_std_list):
+            mu2 = mu_std_list[i][0]
+            std2 = mu_std_list[i][1]
+            mu_int = (std2 * mu_int + std_int * mu2) / (std_int + std2)
+            std_int = 1 / std_int + 1 / std2
+            i += 2
+
+        return [mu_int, std_int]
+
+

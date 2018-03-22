@@ -15,11 +15,8 @@ MAX_GENERATIONS = 1000
 NC_CNT = 20  # non-cancer patients
 C_CNT = 20  # cancer patients
 
-C_THRESHOLD = 0.4
-
 
 CELL_CNT = 100
-
 
 C_MARKERS_LIST = [[10, 20, 30, 40]]
 CANCER_MU_LIST = [0.99]
@@ -29,12 +26,12 @@ CANCER_STD_DEV_LIST = [0.1]
 NC_MARKERS_LIST = [[10], [20], [30], [40]]
 NON_CANCER_MU_LIST = [0.6, 0.6, 0.6, 0.6]
 NON_CANCER_STD_DEV_LIST = [0.1, 0.1, 0.1, 0.1]
-1
-VISUALIZE_POPULATION = True
+
+VISUALIZE_POPULATION = False
 
 class GASolver:
 
-    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list,  c_threshold, cell_cnt,
+    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt,
                  c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list):
 
         self.experiment_cnt = 0
@@ -43,7 +40,6 @@ class GASolver:
         self.antibody_cnt = antibody_cnt
         self.nc_cnt = nc_cnt
         self.c_cnt = c_cnt
-        self.c_threshold = c_threshold
 
         # fill with integers
         self.population = np.full((max_generations, population_size, 4), 0,  dtype=np.int)
@@ -57,7 +53,7 @@ class GASolver:
 
         self.cross_over_indices = StaticMethods.generate_cross_over_indices(4)
 
-        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(C_MARKERS_LIST[0], c_threshold)
+        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(C_MARKERS_LIST[0])
         print "Maximum possible fitness value is:"
         print self.max_possible_fitness
 
@@ -260,7 +256,7 @@ class GASolver:
         :return:
         """
 
-        score = self.score_handler.compute_max_precision_for_ab_combination(child, self.c_threshold)
+        score = self.score_handler.compute_max_precision_for_ab_combination(child)
 
         key = StaticMethods.get_ab_key(child)
 
@@ -515,7 +511,7 @@ class GASolver:
 
 
 #
-gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, C_MARKERS_LIST, NC_MARKERS_LIST, C_THRESHOLD, CELL_CNT,
+gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, C_MARKERS_LIST, NC_MARKERS_LIST, CELL_CNT,
               CANCER_MU_LIST, CANCER_STD_DEV_LIST, NON_CANCER_MU_LIST, NON_CANCER_STD_DEV_LIST)
 gs.run_simulation(MAX_GENERATIONS)
 
