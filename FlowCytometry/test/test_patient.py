@@ -1,6 +1,5 @@
 import unittest
-from patient import Patient
-import numpy as np
+from ga.patient import Patient
 
 ab_cnt = 5
 cell_cnt = 10
@@ -38,8 +37,8 @@ class TestPatient(unittest.TestCase):
         # print p.is_marker_arr
         # print p.cells
 
-        ratio1 = p.get_marker_ratio([1, 2, 3], False)
-        ratio2 = p.get_marker_ratio([4], False)
+        ratio1 = p.get_marker_count([1, 2, 3], False)
+        ratio2 = p.get_marker_count([4], False)
 
         self.assertEqual(ratio1, 1)
         self.assertEqual(ratio2, 0)

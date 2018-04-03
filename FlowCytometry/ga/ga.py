@@ -7,15 +7,12 @@ from scoreHandler import ScoreHandler
 from staticMethods import StaticMethods
 import operator
 
-ANTIBODY_CNT = 240
-# MUTATION_PROBABILITY = 0.03
-MUTATION_PROBABILITY = 0.1
+ANTIBODY_CNT = 60  # 240
+MUTATION_PROBABILITY = 0.03
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
 MAX_GENERATIONS = 1000
 NC_CNT = 20  # non-cancer patients
 C_CNT = 20  # cancer patients
-
-C_THRESHOLD = 0.4
 
 
 CELL_CNT = 100
@@ -23,18 +20,18 @@ CELL_CNT = 100
 
 C_MARKERS_LIST = [[10, 20, 30, 40]]
 CANCER_MU_LIST = [0.99]
-CANCER_STD_DEV_LIST = [0.1]
+CANCER_STD_DEV_LIST = [0.01]
 
 
-NC_MARKERS_LIST = [[10], [20], [30], [40]]
-NON_CANCER_MU_LIST = [0.6, 0.6, 0.6, 0.6]
-NON_CANCER_STD_DEV_LIST = [0.1, 0.1, 0.1, 0.1]
-1
-VISUALIZE_POPULATION = True
+NC_MARKERS_LIST = [[10, 20, 30, 40], [10], [20], [30], [40]]
+NON_CANCER_MU_LIST = [0.1, 0.7, 0.7, 0.7, 0.7]
+NON_CANCER_STD_DEV_LIST = [0.01, 0.01, 0.01, 0.01, 0.01]
+
+VISUALIZE_POPULATION = False
 
 class GASolver:
 
-    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list,  c_threshold, cell_cnt,
+    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list,  cell_cnt,
                  c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list):
 
         self.experiment_cnt = 0
@@ -43,7 +40,6 @@ class GASolver:
         self.antibody_cnt = antibody_cnt
         self.nc_cnt = nc_cnt
         self.c_cnt = c_cnt
-        self.c_threshold = c_threshold
 
         # fill with integers
         self.population = np.full((max_generations, population_size, 4), 0,  dtype=np.int)
@@ -55,9 +51,10 @@ class GASolver:
         self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt,
                                           c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list)
 
-        self.cross_over_indices = StaticMethods.generate_cross_over_indices(4)
+        self.cross_over_indices_2_point = StaticMethods.generate_cross_over_indices_2_point(4)
+        self.cross_over_indices_1_point = StaticMethods.generate_cross_over_indices_1_point(4)
 
-        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(C_MARKERS_LIST[0], c_threshold)
+        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(C_MARKERS_LIST[0])
         print "Maximum possible fitness value is:"
         print self.max_possible_fitness
 
@@ -113,7 +110,7 @@ class GASolver:
         # probabilities of known values
 
         for i in range(self.population_size):
-            self.update_fitness( self.population[0][i])
+            self.update_fitness(self.population[0][i])
 
 
     def _is_child_diverse(self, child):
@@ -122,8 +119,6 @@ class GASolver:
         :param child:
         :return:
         """
-
-
         uchild = np.unique(child)
         return len(uchild) == len(child)
 
@@ -141,66 +136,87 @@ class GASolver:
 
     def cross_over(self, group1, group2):
         """
-        Perform 2-point cross-over between two groups of antibodies of size 4
+        Perform 1 or 2-point cross-over between two groups of antibodies of size 4
         :param group1:
         :param group2:
         :return:
         """
         child = np.full(len(group1), 0,  dtype=np.int)
 
-        inds_order = np.arange(len(self.cross_over_indices))
-        np.random.shuffle(inds_order)
 
-        for ind in inds_order:
+        val = np.random.rand()
 
-            inds1 = self.cross_over_indices[ind][0]
-            inds2 = self.cross_over_indices[ind][1]
+        if val < 0.5:  # 2-point cross-over
+            inds_order = np.arange(len(self.cross_over_indices_2_point))
+            np.random.shuffle(inds_order)
 
-            # first half
-            child[0] = group1[inds1[0]]
-            child[1] = group1[inds1[1]]
+            for ind in inds_order:
 
-            # second half
-            child[2] = group2[inds2[0]]
-            child[3] = group2[inds2[1]]
+                inds1 = self.cross_over_indices_2_point[ind][0]
+                inds2 = self.cross_over_indices_2_point[ind][1]
 
-            if self._is_child_diverse(child):
-                break
+                # first half
+                child[0] = group1[inds1[0]]
+                child[1] = group1[inds1[1]]
+
+                # second half
+                child[2] = group2[inds2[0]]
+                child[3] = group2[inds2[1]]
+
+                if self._is_child_diverse(child):
+                    break
+        else:
+            inds_order = np.arange(len(self.cross_over_indices_1_point))
+            np.random.shuffle(inds_order)
+
+            child = np.array(group1, copy=True)
+            for ind in inds_order:
+
+                inds1 = self.cross_over_indices_2_point[ind][0]
+                inds2 = self.cross_over_indices_2_point[ind][1]
+
+                # first half
+                child[inds1] = group2[inds2]
+
+
+
+                if self._is_child_diverse(child):
+                    break
+
 
         child = np.sort(child)
 
         return child
 
-    def cross_over_generation(self, generation, start_ind):
+    def cross_over_generation(self, generation, end_ind, fill_ind):
         """
         Cross over gene groups with the given ratio
         :param generation: generation number to reproduce
-        :param start_ind: starting index to fill in the new generation
+        :param end_ind: last index to cross over
+        :param fill_ind: starting index to fill in the new generation
         :return:
         """
 
         # randomly divide these into two
-        co_inds1 = np.random.permutation(start_ind)[0:self.population_size / 4]
-        co_inds2 = np.setdiff1d(np.arange(start_ind), co_inds1)
+        co_inds1 = np.random.permutation(end_ind)[0:end_ind / 2]
+        co_inds2 = np.setdiff1d(np.arange(end_ind), co_inds1)
 
         for i in range(len(co_inds1)):
-
             child = self.cross_over(self.population[generation][co_inds1[i]], self.population[generation][co_inds2[i]])
 
             # if cross-over fails to generate a proper child, generate a random child
-            if not self.is_child_unique(generation, child) or child.tolist() == [0, 0, 0, 0]:
+            while not (self.is_child_unique(generation, child) and self._is_child_diverse(child)):
                 child = np.random.permutation(self.antibody_cnt)[0:4]
-                while child.tolist() in self.population[generation].tolist():
-                    child = np.random.permutation(self.antibody_cnt)[0:4]
-                    child = np.sort(child)
+                child = np.sort(child)
 
-            self.population[generation][start_ind] = child
+
+            self.population[generation][fill_ind] = child
             self.update_fitness(child)
 
-            start_ind += 1
+            fill_ind += 1
             self.total_population += 1  # increment total population
 
-        return start_ind
+        return fill_ind
 
     def mutate(self, child):
         """
@@ -260,7 +276,7 @@ class GASolver:
         :return:
         """
 
-        score = self.score_handler.compute_max_precision_for_ab_combination(child, self.c_threshold)
+        score = self.score_handler.compute_max_precision_for_ab_combination(child)
 
         key = StaticMethods.get_ab_key(child)
 
@@ -314,7 +330,7 @@ class GASolver:
 
             # no need to go further if total max fitness is already 1
             total_max_fitness = self.find_max_fitness_and_child(i, True)
-            if total_max_fitness['fitness'] >=  self.max_possible_fitness:  # 1:
+            if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
                 print "Success: "
                 print total_max_fitness['child']
                 break
@@ -328,12 +344,12 @@ class GASolver:
 
             # cross over the next generation half
 
-            new_start_ind = self.cross_over_generation(i + 1, self.population_size / 2)
+            new_start_ind = self.cross_over_generation(i + 1, self.population_size / 2, self.population_size / 2)
             # cross over twice to keep population constant
-            self.cross_over_generation(i + 1, new_start_ind)
+            self.cross_over_generation(i + 1, self.population_size / 2,  new_start_ind)
 
             # mutate the new ones only, not the old ones
-            self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
+            # self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
 
 
             # find fittest unmeasured child
@@ -421,7 +437,7 @@ class GASolver:
 
         x_data = np.arange(0, self.population_size)
 
-
+        x_labels = []
         y_data = []
         color_data = []
         for i in range(self.population_size):
@@ -429,11 +445,12 @@ class GASolver:
             fitness = self.get_fitness_value(child)
 
             y_data.append(fitness)
+            x_labels.append(str(child[0]) + "-" + str(child[1]) + "-" +  str(child[2]) + "-" + str(child[3]))
             color_data.append([float(child[0])/ANTIBODY_CNT, float(child[1])/ANTIBODY_CNT, float(child[2])/ANTIBODY_CNT,
                                float(child[3])/ANTIBODY_CNT])
 
-        plt.bar(x_data, y_data, color=color_data)
-
+        plt.bar(x_data, y_data, color=color_data, tick_label=x_labels)
+        plt.xticks(rotation=90)
         plt.show()
 
         plt.pause(1)
@@ -515,7 +532,7 @@ class GASolver:
 
 
 #
-gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, C_MARKERS_LIST, NC_MARKERS_LIST, C_THRESHOLD, CELL_CNT,
+gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, C_MARKERS_LIST, NC_MARKERS_LIST,  CELL_CNT,
               CANCER_MU_LIST, CANCER_STD_DEV_LIST, NON_CANCER_MU_LIST, NON_CANCER_STD_DEV_LIST)
 gs.run_simulation(MAX_GENERATIONS)
 

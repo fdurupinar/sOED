@@ -8,6 +8,7 @@ class Patient:
     def __init__(self, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
 
         self.cells = np.zeros([cell_cnt, ab_cnt])  # each cell has ab_cnt bins, which can be filled with markers or not
+        self.cell_cnt = cell_cnt
         self.ab_cnt = ab_cnt
         # self.ab_percentage_arr = np.full((ab_cnt), -1, dtype=np.int)
         self.is_marker_arr = np.full((ab_cnt), False, dtype=np.bool)
@@ -19,7 +20,7 @@ class Patient:
         # self._assign_all_antibodies()
 
         self._fill_in_cells()
-        self.marker_ratios = {}
+        self.marker_cnt = {}
 
     def _fill_in_cells(self):
         """
@@ -32,7 +33,7 @@ class Patient:
             prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
             for m in self.markers_list[i]:
                 # assign cells of that antibody group to 1 with that percentage
-                for j in range(len(self.cells)):
+                for j in range(self.cell_cnt):
                     val = np.random.uniform(0, 1)
                     if val <= prob:
                         self.cells[j][m] = 1
@@ -45,12 +46,12 @@ class Patient:
                 # prob = np.random.uniform(0, 1)
                 # prob = 0.5
                 prob = 0
-                for j in range(len(self.cells)):
+                for j in range(self.cell_cnt):
                     val = np.random.uniform(0, 1)
                     if val <= prob:
                         self.cells[j][i] = 1
 
-    def get_marker_ratio(self, ab_list, to_be_recorded):
+    def get_marker_count(self, ab_list, to_be_recorded):
         """
         For all the cells, count the ones with all the markers in ab_seq and return their ratios
         :param ab_list: Is in format [A,B,C] : means antibodies A, B, and C are present
@@ -59,8 +60,8 @@ class Patient:
         """
 
         key = StaticMethods.get_ab_key(ab_list)
-        if key in self.marker_ratios:
-            return self.marker_ratios[key]
+        if key in self.marker_cnt:
+            return self.marker_cnt[key]
 
         containing_cell_cnt = 0
         for c in self.cells:
@@ -71,11 +72,11 @@ class Patient:
             if cnt_pres >= len(ab_list):
                     containing_cell_cnt += 1
 
-        ratio = float(containing_cell_cnt) / len(self.cells)
+        cnt = float(containing_cell_cnt)
 
         if to_be_recorded:
-            self.marker_ratios[key] = ratio
-        return ratio
+            self.marker_cnt[key] = cnt
+        return cnt
 
     def plot_patient(self):
 
@@ -85,7 +86,7 @@ class Patient:
         for i in range(self.ab_cnt):
 
             x_data.append(i)
-            y_data.append(self.get_marker_ratio([i], False))
+            y_data.append(self.get_marker_count([i], False))
 
         plt.plot(x_data, y_data)
 

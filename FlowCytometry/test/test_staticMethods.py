@@ -1,6 +1,7 @@
 from unittest import TestCase
-from staticMethods import StaticMethods
+from ga.staticMethods import StaticMethods
 import numpy as np
+import math
 
 class TestStaticMethods(TestCase):
 
@@ -15,11 +16,17 @@ class TestStaticMethods(TestCase):
         key = StaticMethods.get_ab_key(np.array([1, 3, 4]))
         self.assertEqual(key, "1-3-4")
 
-    def test_generate_cross_over_indices(self):
+    def test_generate_cross_over_indices_2_point(self):
 
-        inds = StaticMethods.generate_cross_over_indices(4)
+        inds = StaticMethods.generate_cross_over_indices_2_point(4)
 
         self.assertEqual(len(inds), 36)
+
+    def test_generate_cross_over_indices_1_point(self):
+
+        inds = StaticMethods.generate_cross_over_indices_1_point(4)
+
+        self.assertEqual(len(inds), 16)
 
     def test_get_unique_combinations(self):
 
@@ -38,3 +45,17 @@ class TestStaticMethods(TestCase):
         self.assertTrue([2, 3, 4] in combs)
 
         self.assertFalse([2, 1] in combs, "should be sorted")
+
+    def test_find_intersection_probability(self):
+
+        val0 = StaticMethods.find_intersection_probability(70, 80, 40, 100)
+        val1 = StaticMethods.find_intersection_probability(70, 80, 50, 100)
+        val2 = StaticMethods.find_intersection_probability(70, 80, 70, 100)
+        val3 = StaticMethods.find_intersection_probability(70, 80, 60, 100)
+
+        self.assertEqual(val0, 0)
+        self.assertGreater(val1, 0)
+        self.assertEqual(val2, 1.0)
+        self.assertGreater(val3, 0)
+        self.assertLess(val3, 1.0)
+

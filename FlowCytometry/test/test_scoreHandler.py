@@ -1,6 +1,6 @@
 from unittest import TestCase
-from scoreHandler import ScoreHandler
-from patient import Patient
+from ga.scoreHandler import ScoreHandler
+from ga.patient import Patient
 import numpy as np
 
 cell_cnt = 100
@@ -118,10 +118,10 @@ class TestScoreHandler(TestCase):
 
         patient = sh.patients_c[0]
 
-        p1 = patient.get_marker_ratio([5], False)
-        p2 = patient.get_marker_ratio([6], False)
-        p3 = patient.get_marker_ratio([7], False)
-        p4 = patient.get_marker_ratio([8], False)
+        p1 = patient.get_marker_count([5], False)
+        p2 = patient.get_marker_count([6], False)
+        p3 = patient.get_marker_count([7], False)
+        p4 = patient.get_marker_count([8], False)
 
         perc = sh._predict_percentage_for_group_intersection(patient, [[5], [6], [7], [8]])
 
@@ -130,8 +130,8 @@ class TestScoreHandler(TestCase):
         sh._add_measured([5, 6])
         sh._add_measured([7, 8])
 
-        p12 = patient.get_marker_ratio([5, 6], False)
-        p34 = patient.get_marker_ratio([7, 8], False)
+        p12 = patient.get_marker_count([5, 6], False)
+        p34 = patient.get_marker_count([7, 8], False)
 
         perc = sh._predict_percentage_for_group_intersection(patient, [[5, 6], [7, 8]])
         self.assertAlmostEqual(perc, p12 * p34)
@@ -241,3 +241,21 @@ class TestScoreHandler(TestCase):
 
         self.assertEqual(prec, 0.75)
 
+    def test__draw_ratio_intersection(self):
+        sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list,
+                          c_sigma_list, nc_mu_list, nc_sigma_list)
+
+        ratios = [0.7, 0.8]
+
+
+        val = sh._draw_intersection_ratio(ratios)
+
+        self.assertGreaterEqual(val, 0.5)
+        self.assertLessEqual(val, 0.7)
+
+        ratios = [0.3, 0.4]
+
+        val = sh._draw_intersection_ratio(ratios)
+
+        self.assertGreaterEqual(val, 0)
+        self.assertLessEqual(val, 0.3)
