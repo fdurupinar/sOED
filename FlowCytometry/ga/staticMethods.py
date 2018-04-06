@@ -127,19 +127,17 @@ class StaticMethods:
 
 
         # probability distribution function
-        pdf = [0]
-        for i in range(len(cdf) - 1):
-            pdf.append(cdf[i+1] - cdf[i])
+        # pdf = [0]
+        # for i in range(len(cdf) - 1):
+        #     pdf.append(cdf[i+1] - cdf[i])
 
 
-
-
-        return {'x': x_range, 'y': pdf}
+        return {'x': x_range, 'y': cdf}
 
     @staticmethod
     def find_intersection_probability(cnt1, cnt2, cnt12, cell_cnt):
         """
-        Find the cprobability that intersection of two groups is less than int12/cellCnt
+        Find the probability that intersection of two groups is less than int12/cellCnt
         :param cnt1: Number of markers in group 1
         :param cnt2: Number of markers in group s
         :param cnt12: Number of markers in intersection
@@ -154,22 +152,22 @@ class StaticMethods:
             return 0
 
     @staticmethod
-    def draw_intersection_value(pdf):
+    def draw_intersection_value(cdf):
         """
-        Given a probability distribution function, draw a value randomly
-        :param pdf: dictionary of {'x':[], 'y':[]} y's are the pdf values, x's are the overlap values to be returned
+        Given a cumulative distribution function, draw a value randomly
+        :param cdf: dictionary of {'x':[], 'y':[]} y's are the pdf values, x's are the overlap values to be returned
         :return:
         """
 
-        y_vals = pdf['y']
+        y_vals = cdf['y']
 
-        max_y = np.max(y_vals)
-        min_y = np.min(y_vals)
-        val = np.random.rand() * (max_y - min_y) + min_y
 
+        val = np.random.rand()
+
+        print val
         for i in range(len(y_vals)-1):
             if val >= y_vals[i] and val <= y_vals[i+1]:
-                return pdf['x'][i]
+                return cdf['x'][i]
 
         return 0
 
@@ -179,10 +177,9 @@ class StaticMethods:
 #
 # data = StaticMethods.create_intersection_distribution([70, 80], 100)
 # print StaticMethods.draw_intersection_value(data)
-# #
+# # #
 # print data
-#
+# #
 # import matplotlib.pyplot as plt
-#
 # plt.bar(data['x'], data['y'])
 # plt.show()
