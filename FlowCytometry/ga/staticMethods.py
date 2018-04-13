@@ -164,7 +164,6 @@ class StaticMethods:
 
         val = np.random.rand()
 
-        print val
         for i in range(len(y_vals)-1):
             if val >= y_vals[i] and val <= y_vals[i+1]:
                 return cdf['x'][i]

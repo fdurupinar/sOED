@@ -190,8 +190,11 @@ class ScoreHandler:
             group2 = [self._predict_percentage_for_ab_list(c, groups) for c in self.patients_c]
 
         prec = abs(stats.ttest_ind(group1, group2)[0])
+        print group1
+        print group2
+        print prec
 
-        if prec != prec:  # NaN
+        if prec != prec:  # tests for NaN
             prec = 0
         return prec
 

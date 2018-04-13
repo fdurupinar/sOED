@@ -209,7 +209,6 @@ class GASolver:
                 child = np.random.permutation(self.antibody_cnt)[0:4]
                 child = np.sort(child)
 
-
             self.population[generation][fill_ind] = child
             self.update_fitness(child)
 

@@ -16,11 +16,12 @@ class Patient:
         self.sigma_list = sigma_list
         self.markers_list = markers_list
 
-        # self._compute_ab_percentages()
-        # self._assign_all_antibodies()
-
         self._fill_in_cells()
         self.marker_cnt = {}
+
+        # self.plot_patient()
+
+
 
     def _fill_in_cells(self):
         """
@@ -80,15 +81,12 @@ class Patient:
 
     def plot_patient(self):
 
-        x_data = []
+        x_data = np.arange(self.ab_cnt)
         y_data = []
-
         for i in range(self.ab_cnt):
-
-            x_data.append(i)
             y_data.append(self.get_marker_count([i], False))
 
-        plt.plot(x_data, y_data)
+        plt.bar(x_data, y_data)
 
         plt.xlabel('Antibody index')
         plt.ylabel('Marker ratio')
