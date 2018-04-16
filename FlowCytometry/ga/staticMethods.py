@@ -83,7 +83,7 @@ class StaticMethods:
         ab_arr = np.sort(ab_arr)
 
 
-        zero_arr = np.full(len(ab_arr), 0, dtype=np.int)
+        zero_arr = np.full(len(ab_arr), -1, dtype=np.int)
 
         indices = np.concatenate((zero_arr, ab_arr))
         combs = combinations(indices, len(ab_arr))  # returns them sorted
@@ -94,7 +94,7 @@ class StaticMethods:
 
         ab_list = []
         for comb in comb_arr_unique:
-            present_ab = [ab for ab in comb if ab != 0]
+            present_ab = [ab for ab in comb if ab != -1]
             ab_list.append(present_ab)
 
         return ab_list
