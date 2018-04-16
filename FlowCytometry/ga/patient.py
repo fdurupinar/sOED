@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class Patient:
 
-    def __init__(self, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
+    def __init__(self, type, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
 
         self.cells = np.zeros([cell_cnt, ab_cnt])  # each cell has ab_cnt bins, which can be filled with markers or not
         self.cell_cnt = cell_cnt
@@ -15,6 +15,7 @@ class Patient:
         self.mu_list = mu_list
         self.sigma_list = sigma_list
         self.markers_list = markers_list
+        self.type = type
 
         self._fill_in_cells()
         self.marker_cnt = {}
@@ -22,35 +23,54 @@ class Patient:
         # self.plot_patient()
 
 
-
     def _fill_in_cells(self):
         """
-        Fill in the percentages array for each antibody
+        Fill in the percentages array for antibody groups
         :return:
         """
 
-        # first fill in the percentages for markers
-        for i in range(len(self.markers_list)):
-            prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
-            for m in self.markers_list[i]:
-                # assign cells of that antibody group to 1 with that percentage
-                for j in range(self.cell_cnt):
-                    val = np.random.uniform(0, 1)
-                    if val <= prob:
-                        self.cells[j][m] = 1
-                self.is_marker_arr[m] = True
-
-        # then fill in the rest of the antibodies drawing their ratios from a uniform distribution
+        # first in the  antibodies drawing their ratios from a uniform distribution
         for i in range(self.ab_cnt):  # for each protein
-            if not self.is_marker_arr[i]:  # not in the marker group
+            # if not self.is_marker_arr[i]:  # not in the marker group
                 # TODO uniform dist
-                # prob = np.random.uniform(0, 1)
+            prob = np.random.uniform(0, 1)
                 # prob = 0.5
-                prob = 0
-                for j in range(self.cell_cnt):
-                    val = np.random.uniform(0, 1)
-                    if val <= prob:
-                        self.cells[j][i] = 1
+                # prob = 0
+            for j in range(self.cell_cnt):
+                val = np.random.uniform(0, 1)
+                if val <= prob:
+                    self.cells[j][i] = 1
+
+        # then create a bias towards the markers
+        if self.type == 'c':
+            # make all the markers true
+            for i in range(len(self.markers_list)):
+                prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
+                val = np.random.uniform(0, 1)
+                if val <= prob:
+                    for m in self.markers_list[i]:
+                        # assign cells of that antibody group to val with that percentage
+                        for j in range(self.cell_cnt):
+                            self.cells[j][m] = 1
+                        self.is_marker_arr[m] = True
+        else:
+            for i in range(len(self.markers_list)):
+                prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
+                val = np.random.uniform(0, 1)
+                if val <= prob:
+                    for m in self.markers_list[i]:
+                        for j in range(self.cell_cnt):
+                            self.cells[j][m] = 1
+                        self.is_marker_arr[m] = True
+
+                    # make one of the markers in the list false
+                    ind = np.random.randint(len(self.markers_list[i]))
+                    m = self.markers_list[i][ind]
+                    # assign cells of that antibody group to val with that percentage
+                    for j in range(self.cell_cnt):
+                        self.cells[j][m] = 0
+
+
 
     def get_marker_count(self, ab_list, to_be_recorded):
         """

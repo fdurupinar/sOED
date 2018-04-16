@@ -8,7 +8,7 @@ from staticMethods import StaticMethods
 
 class ScoreHandler:
 
-    def __init__(self, ab_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt, c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list):
+    def __init__(self, ab_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt, mu_list, sigma_list):
 
         self.measured_list = []  # already measured, sorted ab sequences
 
@@ -17,10 +17,10 @@ class ScoreHandler:
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory(self.c_cnt, ab_cnt, c_markers_list,  cell_cnt, c_mu_list, c_sigma_list)
+        pf_c = PatientFactory("c", self.c_cnt, ab_cnt, markers_list,  cell_cnt, mu_list, sigma_list)
 
         self.patients_c = pf_c.patients
-        pf_nc = PatientFactory(self.nc_cnt, ab_cnt, nc_markers_list, cell_cnt,  nc_mu_list, nc_sigma_list)
+        pf_nc = PatientFactory("nc", self.nc_cnt, ab_cnt, markers_list, cell_cnt,  mu_list, sigma_list)
         self.patients_nc = pf_nc.patients
 
     def is_measured(self, ab_arr):
@@ -190,9 +190,9 @@ class ScoreHandler:
             group2 = [self._predict_percentage_for_ab_list(c, groups) for c in self.patients_c]
 
         prec = abs(stats.ttest_ind(group1, group2)[0])
-        print group1
-        print group2
-        print prec
+        # print group1
+        # print group2
+        # print prec
 
         if prec != prec:  # tests for NaN
             prec = 0
@@ -227,9 +227,15 @@ class ScoreHandler:
         :return:
         """
 
+        if len(ab_list) == 0:
+            return 0
         group1 = [nc.get_marker_count(ab_list, False) for nc in self.patients_nc]
         group2 = [c.get_marker_count(ab_list, False) for c in self.patients_c]
         prec = abs(stats.ttest_ind(group1, group2)[0])
+
+        # print group1
+        # print group2
+        # print prec
 
         if prec != prec:  # NaN
             prec = 0

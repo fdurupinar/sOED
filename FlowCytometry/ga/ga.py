@@ -18,21 +18,17 @@ C_CNT = 20  # cancer patients
 CELL_CNT = 100
 
 
-C_MARKERS_LIST = [[10, 20, 30, 40]]
-CANCER_MU_LIST = [0.99]
-CANCER_STD_DEV_LIST = [0.01]
+MARKERS_LIST = [[10, 20, 30, 40]]
+MU_LIST = [0.8]
+STD_DEV_LIST = [0.1]
 
-
-NC_MARKERS_LIST = [[10, 20, 30, 40], [10], [20], [30], [40]]
-NON_CANCER_MU_LIST = [0.1, 0.7, 0.7, 0.7, 0.7]
-NON_CANCER_STD_DEV_LIST = [0.01, 0.01, 0.01, 0.01, 0.01]
 
 VISUALIZE_POPULATION = False
 
 class GASolver:
 
-    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list,  cell_cnt,
-                 c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list):
+    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt,
+                 mu_list, sigma_list, ):
 
         self.experiment_cnt = 0
         self.max_generations = max_generations
@@ -48,13 +44,13 @@ class GASolver:
 
         self.total_population = population_size
 
-        self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, c_markers_list, nc_markers_list, cell_cnt,
-                                          c_mu_list, c_sigma_list, nc_mu_list, nc_sigma_list)
+        self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers_list, cell_cnt,
+                                          mu_list, sigma_list)
 
         self.cross_over_indices_2_point = StaticMethods.generate_cross_over_indices_2_point(4)
         self.cross_over_indices_1_point = StaticMethods.generate_cross_over_indices_1_point(4)
 
-        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(C_MARKERS_LIST[0])
+        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(MARKERS_LIST[0])
         print "Maximum possible fitness value is:"
         print self.max_possible_fitness
 
@@ -531,8 +527,7 @@ class GASolver:
 
 
 #
-gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, C_MARKERS_LIST, NC_MARKERS_LIST,  CELL_CNT,
-              CANCER_MU_LIST, CANCER_STD_DEV_LIST, NON_CANCER_MU_LIST, NON_CANCER_STD_DEV_LIST)
+gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS_LIST, CELL_CNT, MU_LIST, STD_DEV_LIST)
 gs.run_simulation(MAX_GENERATIONS)
 
 # gs.animate(gs.experiment_cnt)
