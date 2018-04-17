@@ -61,6 +61,7 @@ class StaticMethods:
     def generate_cross_over_indices_1_point(ind_len):
         """
         Generate an array of arrays for indices to cross-over
+        Generates all possible combinations to be randomly selected from
         :param ind_len:
         :return:
         """

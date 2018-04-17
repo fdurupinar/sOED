@@ -208,13 +208,12 @@ class ScoreHandler:
 
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
-        max_prec = -1000
+        total_prec = 0
         for comb in ab_combinations:
             comb = np.sort(comb)
-            prec = self._compute_precision_for_ab_list(comb)
-            if prec > max_prec:
-                max_prec = prec
-        return max_prec
+            total_prec += self._compute_precision_for_ab_list(comb)
+
+        return total_prec/len(ab_combinations)
 
     #########################################################################
     #  DEBUGGING METHODS
@@ -247,17 +246,20 @@ class ScoreHandler:
 
         print "Marker precisions"
 
-        max_prec = -1000
+        # max_prec = -1000
+        total_prec = 0
         for comb in ab_combinations:
             comb = np.sort(comb)
             prec = self._compute_unmeasured_precision_for_ab_list(comb)
+            total_prec += prec
 
             str_comb = ', '.join(str(i) for i in comb)
             print '[' + str_comb + "] " + str(prec)
-            if prec > max_prec:
-                max_prec = prec
+            # if prec > max_prec:
+            #     max_prec = prec
 
-        return max_prec
+        return total_prec/len(ab_combinations)
+        # return max_prec
 
 
 # sg = ScoreHandler(20,20,20)

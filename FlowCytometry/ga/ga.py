@@ -7,10 +7,10 @@ from scoreHandler import ScoreHandler
 from staticMethods import StaticMethods
 import operator
 
-ANTIBODY_CNT = 60  # 240
+ANTIBODY_CNT = 16 # 60  # 240
 MUTATION_PROBABILITY = 0.03
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
-MAX_GENERATIONS = 1000
+MAX_GENERATIONS = 100
 NC_CNT = 20  # non-cancer patients
 C_CNT = 20  # cancer patients
 
@@ -18,8 +18,9 @@ C_CNT = 20  # cancer patients
 CELL_CNT = 100
 
 
-MARKERS_LIST = [[10, 20, 30, 40]]
-MU_LIST = [0.8]
+# MARKERS_LIST = [[10, 20, 30, 40]]
+MARKERS_LIST = [[0, 5, 10, 15]]
+MU_LIST = [0.9]
 STD_DEV_LIST = [0.1]
 
 
@@ -142,7 +143,7 @@ class GASolver:
 
         val = np.random.rand()
 
-        if val < 0.5:  # 2-point cross-over
+        if val < 0.1:  # 2-point cross-over chances are low
             inds_order = np.arange(len(self.cross_over_indices_2_point))
             np.random.shuffle(inds_order)
 
@@ -313,57 +314,63 @@ class GASolver:
         """
         if VISUALIZE_POPULATION:
             plt.ion()
-            fig, ax = plt.subplots(subplot_kw={'aspect': 'equal'})
 
         # self.create_random_population()
         self.create_population()
 
-        for i in range(max_gen_cnt-1):
+        # find the fittest child at the beginning just in case
+        total_max_fitness = self.find_max_fitness_and_child(0, True)
+        if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
+            print "Success: "
+            print total_max_fitness['child']
+
+        for gen in range(max_gen_cnt-1):
             if VISUALIZE_POPULATION:
                 # self.visualize_generation(i, fig, ax)
-                self.plot_generation(i)
-
-            # no need to go further if total max fitness is already 1
-            total_max_fitness = self.find_max_fitness_and_child(i, True)
-            if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
-                print "Success: "
-                print total_max_fitness['child']
-                break
-
-            # print "total max fitness"
-            # print total_max_fitness
+                self.plot_generation(gen)
 
             # survive half of the generation and pass them to the next gen
-            self.survive_n_fittest(i, self.population_size / 2)
-
+            self.survive_n_fittest(gen, self.population_size / 2)
 
             # cross over the next generation half
 
-            new_start_ind = self.cross_over_generation(i + 1, self.population_size / 2, self.population_size / 2)
+            new_start_ind = self.cross_over_generation(gen + 1, self.population_size / 2, self.population_size / 2)
             # cross over twice to keep population constant
-            self.cross_over_generation(i + 1, self.population_size / 2,  new_start_ind)
+            self.cross_over_generation(gen + 1, self.population_size / 2,  new_start_ind)
 
             # mutate the new ones only, not the old ones
             # self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
 
-
             # find fittest unmeasured child
-            max_fitness = self.find_max_fitness_and_child(i + 1, False)
-
-            print "unmeasured max fitness"
-            print max_fitness
-
-            if max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
-                print "Success: "
-                print max_fitness['child']
-                break
+            unmeasured_max_fitness = self.find_max_fitness_and_child(gen + 1, False)
+            if unmeasured_max_fitness['fitness'] < 0:
+                print "no unmeasured fitness value found"
             else:
-                # update values for fittest unmeasured child through the experiment
-                # self.score_handler.assign_percentages_for_all_patients(fittest_child)
-                self.update_fitness(max_fitness['child'])
-                self.score_handler.update_measured(max_fitness['child'])
+                print "unmeasured max fitness"
+                print unmeasured_max_fitness
+
+            # find the fittest child
+            total_max_fitness = self.find_max_fitness_and_child(gen + 1, True)
+
+            print "total max fitness"
+            print total_max_fitness
+
+            self._print_generation(gen + 1)
+
+            if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
+                print "Success: "
+                print total_max_fitness['child']
+                break
+            else:  # update values for fittest unmeasured child through the experiment
+                self.score_handler.update_measured(unmeasured_max_fitness['child'])
+                self.update_fitness(unmeasured_max_fitness['child'])
+
 
                 self.experiment_cnt += 1
+
+    def _print_generation(self, generation):
+        for p in self.population[generation]:
+            print {'fitness': self.get_fitness_value(p), 'child': p}
 
     def _ab_to_xy(self, ab_arr):
         """
@@ -377,7 +384,7 @@ class GASolver:
 
         return [x, y]
 
-    def visualize_generation(self, generation, fig, ax):
+    def visualize_generation(self, generation):
         """
         Draw each ab combination color and size coded
         :param generation:
@@ -385,7 +392,8 @@ class GASolver:
         :return:
         """
 
-        fig, ax = plt.subplots(subplot_kw={'aspect': 'equal'})
+        fig, ax = plt.subplots()
+
         # ax.clear()
         for ind in range(len(self.population[generation])):
 
@@ -428,8 +436,7 @@ class GASolver:
         :param generation:
         :return:
         """
-
-
+        fig, ax = plt.subplots()
         x_data = np.arange(0, self.population_size)
 
         x_labels = []
@@ -447,7 +454,7 @@ class GASolver:
         plt.bar(x_data, y_data, color=color_data, tick_label=x_labels)
         plt.xticks(rotation=90)
         plt.show()
-
+        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.pause(1)
         plt.close()
     def animate(self, gen_cnt):
