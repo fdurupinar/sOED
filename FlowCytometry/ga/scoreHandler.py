@@ -43,7 +43,7 @@ class ScoreHandler:
         ab_arr = np.sort(ab_arr)
 
         key = StaticMethods.get_ab_key(ab_arr)
-        self.measured_dict[key] = 0
+        self.measured_dict[key] = 1
 
     def update_measured(self, ab_arr):
         """
@@ -175,17 +175,19 @@ class ScoreHandler:
         :param ab_list: should be sorted
         :return:
         """
+        if len(ab_list) == 0:
+            return 0
+
         if self.is_measured(ab_list):
+            # if len(ab_list) ==4:
+            #     print "measured " + str(ab_list)
             group1 = [nc.get_marker_count(ab_list, True) for nc in self.patients_nc]
             group2 = [c.get_marker_count(ab_list, True) for c in self.patients_c]
-
         else:
+            # if len(ab_list) ==4:
+                # print "unmeasured " + str(ab_list)
             # Create groups of combinations
-            if len(ab_list) == 0:
-                return 0
-
             groups = self._get_independent_groups(ab_list)
-
             group1 = [self._predict_percentage_for_ab_list(nc, groups) for nc in self.patients_nc]
             group2 = [self._predict_percentage_for_ab_list(c, groups) for c in self.patients_c]
 
@@ -198,7 +200,6 @@ class ScoreHandler:
             prec = 0
         return prec
 
-
     def compute_max_precision_for_ab_combination(self, ab_arr):
         """
         Compute all the scores for 16 combinations and find the maximum
@@ -208,12 +209,24 @@ class ScoreHandler:
 
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
-        total_prec = 0
+        # total_prec = 0
+        # prec_cnt = 0
+        max_prec = -1000
         for comb in ab_combinations:
             comb = np.sort(comb)
-            total_prec += self._compute_precision_for_ab_list(comb)
+            prec = self._compute_precision_for_ab_list(comb)
+            if prec > max_prec:
+                max_prec = prec
 
-        return total_prec/len(ab_combinations)
+        return max_prec
+        #     total_prec += prec
+        #     if prec > 0:
+        #         prec_cnt += 1
+        #
+        # if prec_cnt > 0:
+        #     return total_prec/prec_cnt
+        # return 0
+
 
     #########################################################################
     #  DEBUGGING METHODS
@@ -246,20 +259,27 @@ class ScoreHandler:
 
         print "Marker precisions"
 
-        # max_prec = -1000
-        total_prec = 0
+        max_prec = -1000
+        # total_prec = 0
+        # prec_cnt = 0
         for comb in ab_combinations:
             comb = np.sort(comb)
             prec = self._compute_unmeasured_precision_for_ab_list(comb)
-            total_prec += prec
+            if prec > max_prec:
+                max_prec = prec
+            # total_prec += prec
+            # if prec > 0:
+            #     prec_cnt += 1
 
             str_comb = ', '.join(str(i) for i in comb)
             print '[' + str_comb + "] " + str(prec)
             # if prec > max_prec:
             #     max_prec = prec
+        return max_prec
 
-        return total_prec/len(ab_combinations)
-        # return max_prec
+        # if prec_cnt > 0:
+        #     return total_prec/prec_cnt
+        # return 0
 
 
 # sg = ScoreHandler(20,20,20)

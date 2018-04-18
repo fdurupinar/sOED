@@ -5,10 +5,11 @@ from matplotlib.patches import Rectangle
 import matplotlib.animation as anim
 from scoreHandler import ScoreHandler
 from staticMethods import StaticMethods
+from plotMethods import PlotMethods
 import operator
 
-ANTIBODY_CNT = 16 # 60  # 240
-MUTATION_PROBABILITY = 0.03
+ANTIBODY_CNT = 64  # 16 # 64  # 240
+MUTATION_PROBABILITY = 0.1 # 0.03
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
 MAX_GENERATIONS = 100
 NC_CNT = 20  # non-cancer patients
@@ -23,15 +24,14 @@ MARKERS_LIST = [[0, 5, 10, 15]]
 MU_LIST = [0.9]
 STD_DEV_LIST = [0.1]
 
-
 VISUALIZE_POPULATION = False
+
 
 class GASolver:
 
     def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt,
-                 mu_list, sigma_list, ):
+                 mu_list, sigma_list ):
 
-        self.experiment_cnt = 0
         self.max_generations = max_generations
         self.population_size = population_size
         self.antibody_cnt = antibody_cnt
@@ -52,6 +52,7 @@ class GASolver:
         self.cross_over_indices_1_point = StaticMethods.generate_cross_over_indices_1_point(4)
 
         self.max_possible_fitness = self.score_handler.compute_max_possible_precision(MARKERS_LIST[0])
+        self.plot_methods = PlotMethods(self)
         print "Maximum possible fitness value is:"
         print self.max_possible_fitness
 
@@ -68,13 +69,14 @@ class GASolver:
             self.score_handler.update_measured(ab_arr)
             i += 4
 
-        # once the percentages are assigned, compute the precision scores deriving unknown values as multiplied
-        # probabilities of known values
+    def assign_fitness(self, generation):
+        """
+        once the percentages are assigned, compute the precision scores deriving unknown values as multiplied
+        probabilities of known values
+        :return:
+        """
         for i in range(self.population_size):
-            self.update_fitness(self.population[0][i])
-
-        # print len(self.population[0])
-        # print self.population_size
+            self.update_fitness(self.population[generation][i])
 
     def create_random_population(self):
         """
@@ -85,30 +87,25 @@ class GASolver:
         # draw 4 random values from 242 antibodies n times
         # self.population = np.random.randint(ANTIBODY_CNT-1, size=(n, 4))
 
-
         for i in range(self.population_size):
             ab_arr = np.random.permutation(np.arange(0, self.antibody_cnt))[0:4]
 
-            # creating a random population without repeating elements is costly
             # sort
             ab_arr = np.sort(ab_arr)
             while ab_arr.tolist() in self.population[0].tolist():
                 ab_arr = np.random.permutation(np.arange(0, self.antibody_cnt))[0:4]
                 ab_arr = np.sort(ab_arr)
 
-            # convert all elements to integer first
+            # convert all elements to integers first
             self.population[0][i] = ab_arr
 
             # initial assignment of percentages for all the patients for the ab_arr and its combinations
             self.score_handler.update_measured(ab_arr)
 
-
-        # once the percentages are assigned, compute the precision scores deriving unknown values as multiplied
-        # probabilities of known values
+        # once the percentages are assigned, compute the precision scores of unknown values drawing from a distribution
 
         for i in range(self.population_size):
             self.update_fitness(self.population[0][i])
-
 
     def _is_child_diverse(self, child):
         """
@@ -193,7 +190,6 @@ class GASolver:
         :param fill_ind: starting index to fill in the new generation
         :return:
         """
-
         # randomly divide these into two
         co_inds1 = np.random.permutation(end_ind)[0:end_ind / 2]
         co_inds2 = np.setdiff1d(np.arange(end_ind), co_inds1)
@@ -274,6 +270,7 @@ class GASolver:
 
         score = self.score_handler.compute_max_precision_for_ab_combination(child)
 
+        # print str(child) + " " + str(score)
         key = StaticMethods.get_ab_key(child)
 
         self.fitness[key] = score
@@ -318,16 +315,13 @@ class GASolver:
         # self.create_random_population()
         self.create_population()
 
-        # find the fittest child at the beginning just in case
-        total_max_fitness = self.find_max_fitness_and_child(0, True)
-        if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
-            print "Success: "
-            print total_max_fitness['child']
-
         for gen in range(max_gen_cnt-1):
             if VISUALIZE_POPULATION:
                 # self.visualize_generation(i, fig, ax)
-                self.plot_generation(gen)
+                self.plot_methods.plot_generation(gen)
+
+            # updates the fitness values of the whole population
+            self.assign_fitness(gen)
 
             # survive half of the generation and pass them to the next gen
             self.survive_n_fittest(gen, self.population_size / 2)
@@ -339,202 +333,32 @@ class GASolver:
             self.cross_over_generation(gen + 1, self.population_size / 2,  new_start_ind)
 
             # mutate the new ones only, not the old ones
-            # self.mutate_generation(i + 1, self.population_size / 2, self.population_size)
+            self.mutate_generation(gen + 1, self.population_size / 2, self.population_size)
 
             # find fittest unmeasured child
             unmeasured_max_fitness = self.find_max_fitness_and_child(gen + 1, False)
-            if unmeasured_max_fitness['fitness'] < 0:
-                print "no unmeasured fitness value found"
-            else:
-                print "unmeasured max fitness"
-                print unmeasured_max_fitness
-
             # find the fittest child
             total_max_fitness = self.find_max_fitness_and_child(gen + 1, True)
 
-            print "total max fitness"
-            print total_max_fitness
+            if unmeasured_max_fitness['fitness'] < 0:
+                print "no unmeasured fitness value found"
+            else:
+                print "unmeasured \t total"
+                print str(gen) + "\t" + str(unmeasured_max_fitness) + "\t" + str(total_max_fitness)
 
-            self._print_generation(gen + 1)
-
-            if total_max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
+            if total_max_fitness['fitness'] >= self.max_possible_fitness:
                 print "Success: "
                 print total_max_fitness['child']
                 break
             else:  # update values for fittest unmeasured child through the experiment
                 self.score_handler.update_measured(unmeasured_max_fitness['child'])
-                self.update_fitness(unmeasured_max_fitness['child'])
 
-
-                self.experiment_cnt += 1
 
     def _print_generation(self, generation):
         for p in self.population[generation]:
             print {'fitness': self.get_fitness_value(p), 'child': p}
 
-    def _ab_to_xy(self, ab_arr):
-        """
-        Generate a unique tuple to encode 4 antibodies
-        :param ab_arr:
-        :return: [x, y] representing antibodies' unique position in 2d space
-        """
 
-        x = ab_arr[0] + ab_arr[1] * ANTIBODY_CNT
-        y = ab_arr[2] + ab_arr[3] * ANTIBODY_CNT
-
-        return [x, y]
-
-    def visualize_generation(self, generation):
-        """
-        Draw each ab combination color and size coded
-        :param generation:
-        :param ax:
-        :return:
-        """
-
-        fig, ax = plt.subplots()
-
-        # ax.clear()
-        for ind in range(len(self.population[generation])):
-
-            child = self.population[generation][ind]
-
-            xy = self._ab_to_xy(child)
-            rect = Rectangle(xy=xy, width=0.5, height=0.5, angle=90)
-            ax.add_artist(rect)
-
-            rect.set_clip_box(ax.bbox)
-            # alpha = float(child[3]) / ANTIBODY_CNT
-            # rgb = [float(child[0])/ANTIBODY_CNT, float(child[1])/ANTIBODY_CNT, float(child[2])/ANTIBODY_CNT/ ANTIBODY_CNT]
-            #
-            # rect.set_alpha(alpha)
-            # rect.set_facecolor(rgb)
-
-            fitness = self.get_fitness_value(child)
-
-            if fitness > 0.5:
-                rect.set_facecolor('r')
-            else:
-                rect.set_facecolor('b')
-
-            rect.set_width(fitness * 100)
-            rect.set_height(fitness * 100)
-
-
-        ax.set_xlim(0, ANTIBODY_CNT * ANTIBODY_CNT + 10)
-        ax.set_ylim(0, ANTIBODY_CNT * ANTIBODY_CNT + 10)
-
-
-        plt.show()
-        plt.pause(1)
-        plt.close()
-
-
-    def plot_generation(self, generation):
-        """
-        Color code each antibody combination as RGBA
-        :param generation:
-        :return:
-        """
-        fig, ax = plt.subplots()
-        x_data = np.arange(0, self.population_size)
-
-        x_labels = []
-        y_data = []
-        color_data = []
-        for i in range(self.population_size):
-            child = self.population[generation][i]
-            fitness = self.get_fitness_value(child)
-
-            y_data.append(fitness)
-            x_labels.append(str(child[0]) + "-" + str(child[1]) + "-" +  str(child[2]) + "-" + str(child[3]))
-            color_data.append([float(child[0])/ANTIBODY_CNT, float(child[1])/ANTIBODY_CNT, float(child[2])/ANTIBODY_CNT,
-                               float(child[3])/ANTIBODY_CNT])
-
-        plt.bar(x_data, y_data, color=color_data, tick_label=x_labels)
-        plt.xticks(rotation=90)
-        plt.show()
-        plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        plt.pause(1)
-        plt.close()
-    def animate(self, gen_cnt):
-        """
-        Run the evolution for n generations
-        :param n:
-        :return:
-        """
-
-        fig, ax = plt.subplots(subplot_kw={'aspect': 'equal'})
-
-        rects = [Rectangle(xy=np.random.rand(2) * 10, width=0.5, height=0.5, angle=90) for i in
-                 range(self.population_size)]
-
-
-        def draw_generation(frame, self, rects):
-
-            # for i in range(frame):
-            i = frame
-            for j in range(self.population_size):
-
-                ind = j
-
-                child = self.population[i][j][0:4]
-                ax.add_artist(rects[ind])
-
-                rects[i].set_clip_box(ax.bbox)
-                alpha = self.population[i][j][3]/ANTIBODY_CNT
-
-                rgb = self.population[i][j][0:3]/ANTIBODY_CNT
-                rects[ind].set_alpha(alpha)
-                rects[ind].set_facecolor(rgb)
-                rects[ind].set_width(self.get_fitness_value(child))
-                rects[ind].set_height(self.get_fitness_value(child))
-
-
-
-            return ax
-
-        ani = anim.FuncAnimation(fig, draw_generation, frames= gen_cnt, fargs=(self, rects), interval=25)
-
-
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
-
-
-        plt.show()
-
-
-    # def plot_input(self):
-    #     """
-    #     Plots the initial data with cells and ab distributions
-    #     :return:
-    #     """
-    #     x_data = []
-    #     y_data = []
-    #
-    #     # PLOT normal patients
-    #     for nc in self.score_handler.patients_nc:
-    #         for p in self.population[0]: # first generation
-    #             child = p[0:4]
-    #
-    #
-    #
-    #     for i in range(self.ab_cnt):
-    #
-    #         x_data.append(i)
-    #         y_data.append(self.get_marker_ratio([i]))
-    #
-    #     plt.plot(x_data, y_data)
-    #
-    #     plt.xlabel('Antibody index')
-    #     plt.ylabel('Marker ratio')
-    #     plt.grid(True)
-    #
-    #     plt.show()
-
-
-#
 gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS_LIST, CELL_CNT, MU_LIST, STD_DEV_LIST)
 gs.run_simulation(MAX_GENERATIONS)
 
-# gs.animate(gs.experiment_cnt)
