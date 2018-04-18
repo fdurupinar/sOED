@@ -206,15 +206,26 @@ class ScoreHandler:
         :return: precision of ab combination
         """
 
+        # TODO updated
+        # ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
+        #
+        # max_prec = -1000
+        # for comb in ab_combinations:
+        #     comb = np.sort(comb)
+        #     prec = self._compute_precision_for_ab_list(comb)
+        #     if prec > max_prec:
+        #         max_prec = prec
+        # return max_prec
+        #
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
-        max_prec = -1000
+        prec = 0
         for comb in ab_combinations:
             comb = np.sort(comb)
-            prec = self._compute_precision_for_ab_list(comb)
-            if prec > max_prec:
-                max_prec = prec
-        return max_prec
+            prec += self._compute_precision_for_ab_list(comb)
+
+
+        return prec/len(ab_combinations)
 
     #########################################################################
     #  DEBUGGING METHODS

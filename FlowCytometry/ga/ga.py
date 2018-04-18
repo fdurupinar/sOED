@@ -23,7 +23,7 @@ MU_LIST = [0.8]
 STD_DEV_LIST = [0.1]
 
 
-VISUALIZE_POPULATION = False
+VISUALIZE_POPULATION = True
 
 class GASolver:
 
@@ -196,6 +196,10 @@ class GASolver:
         # randomly divide these into two
         co_inds1 = np.random.permutation(end_ind)[0:end_ind / 2]
         co_inds2 = np.setdiff1d(np.arange(end_ind), co_inds1)
+        #
+        # print "cross over indices"
+        # print co_inds1
+        # print co_inds2
 
         for i in range(len(co_inds1)):
             child = self.cross_over(self.population[generation][co_inds1[i]], self.population[generation][co_inds2[i]])
@@ -352,6 +356,8 @@ class GASolver:
 
             print "unmeasured max fitness"
             print max_fitness
+            print "total max fitness"
+            print self.find_max_fitness_and_child(i + 1, True)
 
             if max_fitness['fitness'] >= self.max_possible_fitness:  # 1:
                 print "Success: "
