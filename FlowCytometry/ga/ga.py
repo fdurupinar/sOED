@@ -8,7 +8,7 @@ from staticMethods import StaticMethods
 from plotMethods import PlotMethods
 import operator
 
-ANTIBODY_CNT = 64  # 16 # 64  # 240
+ANTIBODY_CNT = 240  # 16 # 64  # 240
 MUTATION_PROBABILITY = 0.1 # 0.03
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
 MAX_GENERATIONS = 100
@@ -24,6 +24,7 @@ MARKERS_LIST = [[0, 5, 10, 15]]
 MU_LIST = [0.9]
 STD_DEV_LIST = [0.1]
 
+CROSS_OVER_2_RATIO = 0.5
 VISUALIZE_POPULATION = False
 
 
@@ -140,7 +141,7 @@ class GASolver:
 
         val = np.random.rand()
 
-        if val < 0.1:  # 2-point cross-over chances are low
+        if val < CROSS_OVER_2_RATIO:  # 2-point cross-over chances are low
             inds_order = np.arange(len(self.cross_over_indices_2_point))
             np.random.shuffle(inds_order)
 
