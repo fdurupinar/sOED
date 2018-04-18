@@ -18,8 +18,8 @@ markers_list = [[1, 2], [3]]
 class TestPatientFactory(TestCase):
 
     def test_init(self):
-        pfnc = PatientFactory(5, ab_cnt, markers_list, cell_cnt, c_mu_list, c_sigma_list)
-        pfc = PatientFactory(5, ab_cnt, markers_list,  cell_cnt, nc_mu_list, nc_sigma_list)
+        pfnc = PatientFactory("c", 5, ab_cnt, markers_list, cell_cnt, c_mu_list, c_sigma_list)
+        pfc = PatientFactory("nc", 5, ab_cnt, markers_list,  cell_cnt, nc_mu_list, nc_sigma_list)
 
         self.assertEqual(len(pfnc.patients), 5)
         self.assertEqual(len(pfc.patients), 5)

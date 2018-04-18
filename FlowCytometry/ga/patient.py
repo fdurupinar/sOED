@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class Patient:
 
-    def __init__(self, type, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
+    def __init__(self, patient_type, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
 
         self.cells = np.zeros([cell_cnt, ab_cnt])  # each cell has ab_cnt bins, which can be filled with markers or not
         self.cell_cnt = cell_cnt
@@ -15,7 +15,7 @@ class Patient:
         self.mu_list = mu_list
         self.sigma_list = sigma_list
         self.markers_list = markers_list
-        self.type = type
+        self.patient_type = patient_type
 
         self._fill_in_cells()
         self.marker_cnt = {}
@@ -42,7 +42,7 @@ class Patient:
                     self.cells[j][i] = 1
 
         # then create a bias towards the markers
-        if self.type == 'c':
+        if self.patient_type == 'c':
             # make all the markers true
             for i in range(len(self.markers_list)):
                 prob = np.random.normal(self.mu_list[i], self.sigma_list[i])
@@ -69,8 +69,6 @@ class Patient:
                     # assign cells of that antibody group to val with that percentage
                     for j in range(self.cell_cnt):
                         self.cells[j][m] = 0
-
-
 
     def get_marker_count(self, ab_list, to_be_recorded):
         """
