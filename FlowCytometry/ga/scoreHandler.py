@@ -62,7 +62,7 @@ class ScoreHandler:
 
     def _get_independent_groups(self, ab_list):
         """
-        e.g. with input (a,b,c,d), will return [[a, [b,c]], [a,b,c,d], [[ab], [cd]]]
+        e.g. with input (a,b,c,d), will return [[a], [b,c]], [a,b,c,d], [[ab], [cd]]]
         :param ab_list: a list of antibodies
         :return:
         """
@@ -113,8 +113,6 @@ class ScoreHandler:
         :return: Independence assumption: precision([a,b]) * precision([c])
         """
 
-        perc = 1
-
         combined_el = np.array([])
         for el in group:
             combined_el = np.concatenate((combined_el, el))
@@ -127,7 +125,6 @@ class ScoreHandler:
         # e.g. if ab is known, no need to predict a * b
         marker_cnt_arr = []
         for el in group:
-
             # even if one value in the group is unknown, return 0
             el = np.sort(el)
             if not self.is_measured(el):
@@ -291,8 +288,27 @@ class ScoreHandler:
         # if prec_cnt > 0:
         #     return total_prec/prec_cnt
         # return 0
+    def print_actual_precision(self, ab_list):
+        """
 
+        :param ab_list: sorted sequence
+        :return:
+        """
 
+        group1 = [nc.get_marker_count(ab_list, False) for nc in self.patients_nc]
+        group2 = [c.get_marker_count(ab_list, False) for c in self.patients_c]
+
+        cnt_nc = 0
+        for g in group1:
+            if g < 40:
+                cnt_nc += 1
+
+        cnt_c = 0
+        for g in group2:
+            if g < 40:
+                cnt_c += 1
+
+        print cnt_c / (cnt_c + cnt_nc)
 # sg = ScoreHandler(20,20,20)
 # print sg.get_independent_groups([1,2,3,4])
 # print sg.get_unique_combinations([1,2,3,4])

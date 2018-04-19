@@ -8,31 +8,30 @@ from staticMethods import StaticMethods
 from plotMethods import PlotMethods
 import operator
 
-ANTIBODY_CNT = 240  # 16 # 64  # 240
-MUTATION_PROBABILITY = 0.1 # 0.03
+ANTIBODY_CNT = 64  # 16 # 64  # 240
+
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
-MAX_GENERATIONS = 100
-NC_CNT = 20  # non-cancer patients
-C_CNT = 20  # cancer patients
+MAX_GENERATIONS = 250 - POPULATION_SIZE
+NC_CNT = 5  # non-cancer patients
+C_CNT = 5  # cancer patients
 
 
 CELL_CNT = 100
 
 
-# MARKERS_LIST = [[10, 20, 30, 40]]
 MARKERS_LIST = [[0, 5, 10, 15]]
-MU_LIST = [0.9]
-STD_DEV_LIST = [0.1]
+MU_LIST = [0.99]
+STD_DEV_LIST = [0.01]
 
-
+MUTATION_PROBABILITY = 0.1  # 0.03
 CROSS_OVER_2_RATIO = 0.5
-VISUALIZE_POPULATION = False
+VISUALIZE_POPULATION = True
 
 
 class GASolver:
 
     def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt,
-                 mu_list, sigma_list ):
+                 mu_list, sigma_list):
 
         self.max_generations = max_generations
         self.population_size = population_size
@@ -54,6 +53,7 @@ class GASolver:
         self.cross_over_indices_1_point = StaticMethods.generate_cross_over_indices_1_point(4)
 
         self.max_possible_fitness = self.score_handler.compute_max_possible_precision(MARKERS_LIST[0])
+
         self.plot_methods = PlotMethods(self)
         print "Maximum possible fitness value is:"
         print self.max_possible_fitness
@@ -95,7 +95,7 @@ class GASolver:
             # sort
             ab_arr = np.sort(ab_arr)
             while ab_arr.tolist() in self.population[0].tolist():
-                ab_arr = np.random.permutation(np.arange(0, self.antibody_cnt))[0:4]
+                ab_arr = np.random.permutation(np.arange(0, self.antibody_cnt))[:4]
                 ab_arr = np.sort(ab_arr)
 
             # convert all elements to integers first
@@ -125,22 +125,18 @@ class GASolver:
         :param child: np array
         :return:
         """
-        if child.tolist() in self.population[generation].tolist():
-                return False
-        else:
-            return True
+        return child.tolist() not in self.population[generation].tolist()
 
     def cross_over(self, group1, group2):
         """
         Perform 1 or 2-point cross-over between two groups of antibodies of size 4
         :param group1:
         :param group2:
+        val = np.random.rand()
+
         :return:
         """
         child = np.full(len(group1), 0,  dtype=np.int)
-
-
-        val = np.random.rand()
 
         if val < CROSS_OVER_2_RATIO:  # 2-point cross-over chances are low
             inds_order = np.arange(len(self.cross_over_indices_2_point))
@@ -323,8 +319,8 @@ class GASolver:
 
         for gen in range(max_gen_cnt-1):
             if VISUALIZE_POPULATION:
-                # self.visualize_generation(i, fig, ax)
                 self.plot_methods.plot_generation(gen)
+                # self.plot_methods.visualize_generation(gen)
 
             # updates the fitness values of the whole population
             self.assign_fitness(gen)
