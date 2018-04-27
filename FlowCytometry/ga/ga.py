@@ -1,10 +1,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Rectangle
-import matplotlib.animation as anim
 from scoreHandler import ScoreHandler
-from staticMethods import StaticMethods
+from util.staticMethods import StaticMethods
 from plotMethods import PlotMethods
 import operator
 
@@ -25,7 +23,7 @@ STD_DEV_LIST = [0.01]
 
 MUTATION_PROBABILITY = 0.1  # 0.03
 CROSS_OVER_2_RATIO = 0.5
-VISUALIZE_POPULATION = True
+VISUALIZE_POPULATION = False
 
 
 class GASolver:
@@ -138,6 +136,7 @@ class GASolver:
         """
         child = np.full(len(group1), 0,  dtype=np.int)
 
+        val = np.random.uniform(0, 1)
         if val < CROSS_OVER_2_RATIO:  # 2-point cross-over chances are low
             inds_order = np.arange(len(self.cross_over_indices_2_point))
             np.random.shuffle(inds_order)

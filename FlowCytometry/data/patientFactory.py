@@ -1,4 +1,4 @@
-from patient import Patient
+from data.patient import Patient
 
 
 class PatientFactory:

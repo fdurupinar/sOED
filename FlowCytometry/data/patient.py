@@ -1,11 +1,11 @@
 import numpy as np
-from staticMethods import StaticMethods
+from util.staticMethods import StaticMethods
 import matplotlib.pyplot as plt
 
 
 class Patient:
 
-    def __init__(self, patient_type, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
+    def __init__(self, is_cancer, cell_cnt, ab_cnt, markers_list, mu_list, sigma_list):
 
         self.cells = np.zeros([cell_cnt, ab_cnt])  # each cell has ab_cnt bins, which can be filled with markers or not
         self.cell_cnt = cell_cnt
@@ -14,7 +14,7 @@ class Patient:
         self.mu_list = mu_list
         self.sigma_list = sigma_list
         self.markers_list = markers_list
-        self.patient_type = patient_type
+        self.is_cancer = is_cancer
 
         self._fill_in_cells()
         self.marker_cnt = {}
@@ -41,6 +41,7 @@ class Patient:
         # then create a bias towards the markers
 
         # make all the markers true
+
         for i in range(len(self.markers_list)):
             for m in self.markers_list[i]:
                 # assign cells of that antibody group to val with that percentage
@@ -52,7 +53,7 @@ class Patient:
                 self.is_marker_arr[m] = True
 
         # remove that bias in nc patients by picking a random marker and removing it
-        if self.patient_type == 'nc':
+        if not self.is_cancer:
             for i in range(len(self.markers_list)):
                 # assign cells of that antibody group to val with that percentage
                 for j in range(self.cell_cnt):

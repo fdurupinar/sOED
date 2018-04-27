@@ -19,13 +19,6 @@ class StaticMethods:
         """
 
         return '-'.join(str(c) for c in child)
-        # key = ''
-        # if len(child) > 0:
-        #     for i in range(len(child) - 1):
-        #         key += str(int(child[i])) + '-'
-        #     key += str(int(child[len(child) - 1]))
-
-        # return key
 
     @staticmethod
     def key_to_ab(key):

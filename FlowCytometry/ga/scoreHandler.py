@@ -2,8 +2,8 @@ import numpy as np
 from scipy import stats
 from itertools import combinations
 
-from patientFactory import PatientFactory
-from staticMethods import StaticMethods
+from data.patientFactory import PatientFactory
+from util.staticMethods import StaticMethods
 
 
 class ScoreHandler:
@@ -17,10 +17,10 @@ class ScoreHandler:
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory("c", self.c_cnt, ab_cnt, markers_list,  cell_cnt, mu_list, sigma_list)
+        pf_c = PatientFactory(True, self.c_cnt, ab_cnt, markers_list,  cell_cnt, mu_list, sigma_list)
 
         self.patients_c = pf_c.patients
-        pf_nc = PatientFactory("nc", self.nc_cnt, ab_cnt, markers_list, cell_cnt,  mu_list, sigma_list)
+        pf_nc = PatientFactory(False, self.nc_cnt, ab_cnt, markers_list, cell_cnt,  mu_list, sigma_list)
         self.patients_nc = pf_nc.patients
 
     def is_measured(self, ab_arr):

@@ -1,7 +1,7 @@
 from unittest import TestCase
-from ga.staticMethods import StaticMethods
+from util.staticMethods import StaticMethods
 import numpy as np
-import math
+
 
 class TestStaticMethods(TestCase):
 
