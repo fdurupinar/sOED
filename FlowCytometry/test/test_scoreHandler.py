@@ -1,6 +1,5 @@
 from unittest import TestCase
 from ga.scoreHandler import ScoreHandler
-from ga.patient import Patient
 import numpy as np
 
 cell_cnt = 100
@@ -19,9 +18,6 @@ nc_cnt = 10
 markers_list = [[1, 2, 3, 4]]
 mu_list = [0.99]
 sigma_list = [0.1]
-
-
-
 
 
 class TestScoreHandler(TestCase):
@@ -133,19 +129,28 @@ class TestScoreHandler(TestCase):
         perc = sh._predict_percentage_for_group_intersection(patient, [[5, 6], [7, 8]])
         self.assertAlmostEqual(perc, p12 * p34)
 
-
     def test_predict_percentage_for_ab_list(self):
         sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt, mu_list,
                           sigma_list)
 
-        sh.update_measured([1, 2])
+        # before updating measured values
         patient = sh.patients_c[0]
-
         perc1 = sh._predict_percentage_for_group_intersection(patient, [[1], [2]])
         perc2 = sh._predict_percentage_for_group_intersection(patient, [[1, 2]])
-        perc = sh._predict_percentage_for_ab_list(patient, [1, 2])
+        perc = sh._compute_precision_for_ab_list([1, 2])
 
         self.assertEqual(perc, (perc1 + perc2)/2)
+
+        sh.update_measured([1, 2])
+
+        # after updating measured values
+        perc1 = sh._predict_percentage_for_group_intersection(patient, [[1], [2]])
+        # Because it doesn't cover maximally
+        self.assertEqual(perc1, 0)
+
+        perc2 = sh._predict_percentage_for_group_intersection(patient, [[1, 2]])
+        # Because it is already measured
+        self.assertEqual(perc2, 0)
 
     def test_compute_precision_for_ab_list(self):
         sh = ScoreHandler(10, 1, 1, markers_list,  cell_cnt, mu_list,
@@ -154,104 +159,42 @@ class TestScoreHandler(TestCase):
         # already measured
         sh.update_measured([5, 6, 7, 8])
 
-        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8], 1)
-        self.assertEqual(prec, 0.5)
+        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8])
+        self.assertEqual(prec, 0)
 
-        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8], 0)
-        self.assertEqual(prec, 0.5)
-
-        prec = sh._compute_precision_for_ab_list([5, 6, 7, 8], 0.4)
-        self.assertGreaterEqual(prec, 0.5)
+        prec1 = sh._compute_precision_for_ab_list([1, 2, 7, 8])
+        prec2 = sh._compute_precision_for_ab_list([1, 2, 5, 6])
+        self.assertEqual(prec1, prec2)
 
     def test_compute_max_precision_for_ab_combination(self):
-        sh = ScoreHandler(5, 1, 1, markers_list,  cell_cnt, mu_list,
-                          sigma_list)
+        sh = ScoreHandler(5, 2, 2, markers_list,  10, [1],
+                          [0])
 
         # already measured
         sh.update_measured([1, 2, 3, 4])  # markers list
 
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 4, 3]), 0)
-        self.assertEqual(prec, 0.5)
+        prec1 = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 3, 4]))
+        prec2 = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 4, 3]))
+        self.assertEqual(prec1, prec2)
 
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 4, 3]), 1)
-        self.assertEqual(prec, 0.5)
+        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 3, 4]))
 
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 4, 3]), 0.4)
-        self.assertGreaterEqual(prec, 0.5)
-
-        #  clear sh and customly assign patients
-        sh = ScoreHandler(5, 2, 2, markers_list,  cell_cnt, mu_list,
-                          sigma_list)
-        sh.update_measured([1, 2])
-        #
-        sh.patients_c = []
-        sh.patients_nc = []
-        sh.patients_nc.append(Patient(5, 10, [1, 2], 0, 0.001))  # non-cancer patients don't have these markers
-        sh.patients_c.append(Patient(5, 10, [1, 2], 1, 0.001))  # cancer patients have these markers
-        sh.patients_nc.append(Patient(5, 10, [1, 2], 0, 0.001))  # non-cancer patients don't have these markers
-        sh.patients_c.append(Patient(5, 10, [1, 2], 1, 0.001))  # cancer patients have these markers
-
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2]), 0.4)
-        self.assertEqual(prec, 1)
-
-        # test where 1 and 2 are all 1s for all patients, and others are all 0s for all patients
-
-        sh.update_measured([1, 2, 3, 4])
-
-        # make other cells 0
-        for j in range(2):
-            for i in range(5):
-                sh.patients_nc[j].cells[i][0] = 0
-                sh.patients_nc[j].cells[i][3] = 0
-                sh.patients_nc[j].cells[i][4] = 0
-                sh.patients_c[j].cells[i][0] = 0
-                sh.patients_c[j].cells[i][3] = 0
-                sh.patients_c[j].cells[i][4] = 0
-
-                sh.patients_nc[j].cells[i][1] = 1
-                sh.patients_nc[j].cells[i][2] = 1
-                sh.patients_c[j].cells[i][1] = 1
-                sh.patients_c[j].cells[i][2] = 1
-
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 3, 4]), 0.4)
-
-        self.assertEqual(prec, 0.5)
-
-        # test 3/4 precision case
-        for j in range(2):
-            for i in range(5):
-                sh.patients_nc[j].cells[i][0] = 0
-                sh.patients_nc[j].cells[i][3] = 0
-                sh.patients_nc[j].cells[i][4] = 0
-                sh.patients_c[j].cells[i][0] = 0
-                sh.patients_c[j].cells[i][3] = 0
-                sh.patients_c[j].cells[i][4] = 0
-                sh.patients_c[j].cells[i][1] = 1
-                sh.patients_c[j].cells[i][2] = 1
-                sh.patients_nc[j].cells[i][2] = 1
-
-        for i in range(5):  # only 1 nc is correct
-            sh.patients_nc[0].cells[i][1] = 0
-            sh.patients_nc[1].cells[i][1] = 1
-
-        prec = sh.compute_max_precision_for_ab_combination(np.array([1, 2, 3, 4]), 0.4)
-
-        self.assertEqual(prec, 0.75)
+        self.assertGreaterEqual(prec, 1000) # inf
 
     def test__draw_ratio_intersection(self):
         sh = ScoreHandler(ab_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt, mu_list,
                           sigma_list)
 
-        ratios = [0.7, 0.8]
+        marker_cnt_arr = [70, 80]
 
-        val = sh._draw_intersection_ratio(ratios)
+        val = sh._draw_intersection_ratio(sh.patients_c[0], marker_cnt_arr)
 
         self.assertGreaterEqual(val, 0.5)
         self.assertLessEqual(val, 0.7)
 
-        ratios = [0.3, 0.4]
+        marker_cnt_arr = [30, 40]
 
-        val = sh._draw_intersection_ratio(ratios)
+        val = sh._draw_intersection_ratio(sh.patients_c[0],marker_cnt_arr)
 
         self.assertGreaterEqual(val, 0)
         self.assertLessEqual(val, 0.3)

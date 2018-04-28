@@ -8,19 +8,18 @@ population_size = 20
 antibody_cnt = 20
 nc_cnt = 5
 c_cnt = 5
-markers = [1, 2, 3, 4]
+markers = [[1, 2, 3, 4]]
 
 cell_cnt = 100
-c_mu = 0.7
-c_sigma = 0.1
-nc_mu = 0.3
-nc_sigma = 0.1
+mu_list = [0.7]
+sigma_list = [0.1]
+
 
 
 class TestGASolver(TestCase):
 
     def test_init(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         self.assertEqual(ga.max_generations, max_generations)
         self.assertEqual(ga.population_size, population_size)
@@ -31,7 +30,7 @@ class TestGASolver(TestCase):
         self.assertEqual(ga.total_population, population_size)
 
     def test_create_random_population(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
         ga.create_random_population()
 
         for i in range(population_size - 1):
@@ -42,7 +41,7 @@ class TestGASolver(TestCase):
                 self.assertGreaterEqual(ga.population[0][i][j], 0, "antibody ids are correct")
 
     def test_get_fitness_key(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         key = ga.get_ab_key(np.array([1, 2, 3, 4]))
         self.assertEqual(key, "1-2-3-4")
@@ -54,7 +53,7 @@ class TestGASolver(TestCase):
         self.assertEqual(key, "0-20-15-14-3-5-7-7")
 
     def test_get_fitness_value(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         val = ga.get_fitness_value([1, 2, 3, 4])
         self.assertEqual(val, 0, "fitness not updated yet")
@@ -67,7 +66,7 @@ class TestGASolver(TestCase):
 
     def test_is_child_diverse(self):
 
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         arr = np.array([1, 2, 3, 4])
         res = ga._is_child_diverse(arr)
@@ -82,7 +81,7 @@ class TestGASolver(TestCase):
         self.assertFalse(res)
 
     def test_is_child_unique(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         arr = np.array([1, 2, 3, 4])
         res = ga.is_child_unique(0, arr)
@@ -98,7 +97,7 @@ class TestGASolver(TestCase):
 
     def test_cross_over(self):
 
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         group1 = np.array([1, 2, 3, 4])
 
@@ -115,7 +114,7 @@ class TestGASolver(TestCase):
 
     def test_mutate(self):
 
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         child = np.array([1, 2, 3, 4])
         mutant = ga.mutate(child)
@@ -126,7 +125,7 @@ class TestGASolver(TestCase):
 
     def test_survive_n_fittest(self):
 
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         ga.create_random_population()
         fit_cnt = ga.survive_n_fittest(0, 2)
@@ -137,7 +136,7 @@ class TestGASolver(TestCase):
         self.assertEqual(ga.population[1][fit_cnt+2].tolist(), [0, 0, 0, 0])
 
     def test_find_max_fitness_and_child(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
         ga.create_random_population()
 
         # don't include measured. All the population is measured so return -1
@@ -162,7 +161,7 @@ class TestGASolver(TestCase):
 
     def test_cross_over_generation(self):
 
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
 
         ga.create_random_population()
@@ -179,7 +178,7 @@ class TestGASolver(TestCase):
         self.assertEqual(len(x), population_size/4)
 
     def test_mutate_generation(self):
-        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, c_mu, c_sigma, nc_mu, nc_sigma)
+        ga = GASolver(max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers,  cell_cnt, mu_list, sigma_list)
 
         np.random.rand(1)[0]
         ga.create_random_population()
