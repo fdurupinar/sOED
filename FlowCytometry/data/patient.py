@@ -30,9 +30,9 @@ class Patient:
         # first in the  antibodies drawing their ratios from a uniform distribution
         for i in range(self.ab_cnt):  # for each protein
                 # TODO uniform dist
-            # prob = np.random.uniform(0, 1)
+            prob = np.random.uniform(0, 1)
                 # prob = 0.5
-            prob = 0
+            # prob = 0
             for j in range(self.cell_cnt):
                 val = np.random.uniform(0, 1)
                 if val <= prob:

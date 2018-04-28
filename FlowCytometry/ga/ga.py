@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scoreHandler import ScoreHandler
 from util.staticMethods import StaticMethods
-from plotMethods import PlotMethods
 import operator
 
 ANTIBODY_CNT = 64  # 16 # 64  # 240
@@ -168,8 +167,6 @@ class GASolver:
 
                 # first half
                 child[inds1] = group2[inds2]
-
-
 
                 if self._is_child_diverse(child):
                     break
