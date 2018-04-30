@@ -235,6 +235,37 @@ class ScoreHandler:
         #     return total_prec/prec_cnt
         # return 0
 
+    def compute_is_precise_for_ab_combination(self, ab_arr):
+        ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
+
+        is_prec = 0
+        for comb in ab_combinations:
+            comb = np.sort(comb)
+            if self.compute_is_precise_for_ab_list(comb):
+                is_prec = 1
+
+
+        return is_prec
+
+    def compute_is_precise_for_ab_list(self, ab_list):
+        """
+        :param ab_list: A sorted list
+        :return:
+        """
+
+        group1 = [nc.get_marker_count(ab_list, True) for nc in self.patients_nc]
+        group2 = [c.get_marker_count(ab_list, True) for c in self.patients_c]
+
+        prec = abs(stats.ttest_ind(group1, group2)[0])
+
+
+
+        if prec != prec:  # tests for NaN
+            return 0
+        if prec > 4:
+            return 1
+        else:
+            return 0
 
     #########################################################################
     #  DEBUGGING METHODS
