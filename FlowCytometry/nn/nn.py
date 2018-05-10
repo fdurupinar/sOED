@@ -37,6 +37,7 @@ class NNSolver:
         self.nc_cnt = nc_cnt
         self.c_cnt = c_cnt
         self.data = np.full((self.data_size, INPUT_DIM), 0, dtype=np.int)
+        self.random_data = np.full((self.data_size, INPUT_DIM), 0, dtype=np.int)
         self.output_list = np.full((self.data_size, 1), 0, dtype=np.float)
 
         self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers_list, cell_cnt,
@@ -57,45 +58,91 @@ class NNSolver:
             self.output_list[i / INPUT_DIM] = self.score_handler.compute_is_precise_for_ab_combination(ab_arr)
             i += 4
 
+    def random_data(self):
+        i = 0
+        while i < ANTIBODY_CNT / 4:
+            ab_arr = np.random.permutation(ANTIBODY_CNT)
+            ab_arr = np.sort(ab_arr)
+
+            while ab_arr in self.random_data:
+                ab_arr = np.random.permutation(ANTIBODY_CNT)
+                ab_arr = np.sort(ab_arr)
+
+            self.random_data[i] = ab_arr
+            i += 1
+
+    def make_discriminator(self, X, Y):
+        # Initializing the Sequential model from KERAS.
+        self.model_disc = Sequential()
+
+        # Creating a 16 neuron hidden layer with Linear Rectified activation function.
+        self.model_disc.add(Dense(16, input_dim=4, kernel_initializer='uniform', activation='relu'))
+
+        # Creating a 8 neuron hidden layer.
+        self.model_disc.add(Dense(8, kernel_initializer='uniform', activation='relu'))
+
+        # Adding a output layer.
+        self.model_disc.add(Dense(1, kernel_initializer='uniform', activation='sigmoid'))
+
+        # Compiling the model
+        self.model_disc.compile(loss='binary_crossentropy',
+                           optimizer='adam', metrics=['accuracy'])
+
+        # Fitting the modelz
+        self.model_disc.fit(X, Y, nb_epoch=150, batch_size=10)
+
+        scores = self.model_disc.evaluate(X, Y)
+
+
+    def make_generator(self, X, Y):
+        # Initializing the Sequential model from KERAS.
+        self.model_gen = Sequential()
+
+        # Creating a 16 neuron hidden layer with Linear Rectified activation function.
+        self.model_gen.add(Dense(16, input_dim=4, kernel_initializer='uniform', activation='relu'))
+
+        # Creating a 8 neuron hidden layer.
+        self.model_gen.add(Dense(8, kernel_initializer='uniform', activation='relu'))
+
+        # Adding a output layer.
+        self.model_gen.add(Dense(1, kernel_initializer='uniform', activation='sigmoid'))
+
+        # Compiling the model
+        self.model_gen.compile(loss='binary_crossentropy',
+                           optimizer='adam', metrics=['accuracy'])
+
+        # Fitting the modelz
+        self.model_gen.fit(X, Y, nb_epoch=150, batch_size=10)
+
+        scores = self.model_gen.evaluate(X, Y)
+
     def run_simulation(self):
-        # Loading the data set (PIMA Diabetes Dataset)
-        # dataset = np.loadtxt('datasets/pima-indians-diabetes.csv', delimiter=",")
-        #
-        # # Loading the input values to X and Label values Y using slicing.
-        # X = dataset[:, 0:4]
-        # Y = dataset[:, 4]
 
-        # X = self.data[:, 0:INPUT_DIM]
-        # Y = self.labels[:, 0:INPUT_DIM]
-        #
-
+        # training data
         X = self.data
         Y = self.output_list
 
-        print X
-        print Y
 
-        # Initializing the Sequential model from KERAS.
-        model = Sequential()
+        self.make_discriminator(X, Y)
 
-        # Creating a 16 neuron hidden layer with Linear Rectified activation function.
-        model.add(Dense(16, input_dim=4, kernel_initializer='uniform', activation='relu'))
 
-        # Creating a 8 neuron hidden layer.
-        model.add(Dense(8,  kernel_initializer='uniform', activation='relu'))
 
-        # Adding a output layer.
-        model.add(Dense(1,  kernel_initializer='uniform', activation='sigmoid'))
+        #generated data
 
-        # Compiling the model
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam', metrics=['accuracy'])
-        # Fitting the modelz
-        model.fit(X, Y, nb_epoch=150, batch_size=10)
 
-        scores = model.evaluate(X, Y)
+        #
+        # print X
+        # print Y
 
-        print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+        # Generator
+
+
+
+
+
+        # print("%s: %.2f%%" % (model_disc.metrics_names[1], scores[1] * 100))
+
+
 
 
 
