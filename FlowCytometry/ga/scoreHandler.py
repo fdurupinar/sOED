@@ -2,13 +2,14 @@ import numpy as np
 from scipy import stats
 from itertools import combinations
 
-from data.patientFactory import PatientFactory
+from dataGeneration.dataSorter import DataSorter
 from util.staticMethods import StaticMethods
 
 
+THRESHOLD = 55
 class ScoreHandler:
 
-    def __init__(self, ab_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt, mu_list, sigma_list):
+    def __init__(self, file_path, nc_cnt, c_cnt):
 
         self.measured_list = []  # already measured, sorted ab sequences
 
@@ -17,11 +18,12 @@ class ScoreHandler:
         self.c_cnt = c_cnt
         self.nc_cnt = nc_cnt
 
-        pf_c = PatientFactory(True, self.c_cnt, ab_cnt, markers_list,  cell_cnt, mu_list, sigma_list)
+        ds = DataSorter(file_path)
 
-        self.patients_c = pf_c.patients
-        pf_nc = PatientFactory(False, self.nc_cnt, ab_cnt, markers_list, cell_cnt,  mu_list, sigma_list)
-        self.patients_nc = pf_nc.patients
+
+        self.patients_c = ds.patients_c
+
+        self.patients_nc = ds.patients_nc
 
     def is_measured(self, ab_arr):
         """
@@ -166,6 +168,51 @@ class ScoreHandler:
 
         return perc
 
+    def compute_threshold_based_precision_for_ab_list(self, ab_list):
+        """
+        Compute the score for a single ab sequence
+        :param ab_list: should be sorted
+        :return:
+        """
+
+        if len(ab_list) == 0:
+            return 0
+
+        group1 = [1 for nc in self.patients_nc if nc.get_marker_count(ab_list, True) < THRESHOLD]
+        group2 = [1 for c in self.patients_c if c.get_marker_count(ab_list, True) >= THRESHOLD]
+
+        nc_cnt = len(group1)
+        c_cnt = len(group2)
+
+        assert (c_cnt > 0 or nc_cnt > 0)
+
+
+        # print float(c_cnt) / float(c_cnt + nc_cnt)
+
+        return float(c_cnt) / float(c_cnt + nc_cnt)
+
+    def compute_threshold_based_precision_for_ab_combination(self, ab_arr):
+        """
+        Compute the score for combinations of ab_arr
+        :param ab_arr:
+        :return:
+        """
+        ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
+
+        max_prec = -1000
+        for comb in ab_combinations:
+            comb = np.sort(comb)
+            prec = self.compute_threshold_based_precision_for_ab_list(comb)
+            if prec > max_prec:
+                max_prec = prec
+
+
+        # if max_prec > 0.9:
+        #     return 1
+        # else:
+        #     return 0
+        return max_prec
+
     def _compute_precision_for_ab_list(self, ab_list):
         """
         Compute the score for a single ab sequence
@@ -235,6 +282,8 @@ class ScoreHandler:
         #     return total_prec/prec_cnt
         # return 0
 
+
+
     def compute_is_precise_for_ab_combination(self, ab_arr):
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
@@ -253,19 +302,39 @@ class ScoreHandler:
         :return:
         """
 
-        group1 = [nc.get_marker_count(ab_list, True) for nc in self.patients_nc]
-        group2 = [c.get_marker_count(ab_list, True) for c in self.patients_c]
 
-        prec = abs(stats.ttest_ind(group1, group2)[0])
+        group1 = [nc.get_marker_count(ab_list, True) for nc in self.patients_nc if nc.get_marker_count(ab_list, True) < THRESHOLD]
+        group2 = [c.get_marker_count(ab_list, True)for c in self.patients_c if c.get_marker_count(ab_list, True) >= THRESHOLD]
+
+        nc_cnt = len(group1)
+        c_cnt = len(group2)
 
 
+        # print str(ab_list) + " " + str(nc_cnt) + " " + str(c_cnt)
+        prec = float(c_cnt) / float(c_cnt + nc_cnt)
 
-        if prec != prec:  # tests for NaN
-            return 0
-        if prec > 4:
+        # print str(group1) + " --- " + str(group2) + " " + str(prec)
+
+        if prec > 0.9:
             return 1
         else:
             return 0
+
+
+
+        # group1 = [nc.get_marker_count(ab_list, True) for nc in self.patients_nc]
+        # group2 = [c.get_marker_count(ab_list, True) for c in self.patients_c]
+        #
+        # prec = abs(stats.ttest_ind(group1, group2)[0])
+
+
+
+        # if prec != prec:  # tests for NaN
+        #     return 0
+        # if prec > 4:
+        #     return 1
+        # else:
+        #     return 0
 
     #########################################################################
     #  DEBUGGING METHODS
@@ -296,7 +365,7 @@ class ScoreHandler:
     def compute_max_possible_precision(self, ab_arr):
         ab_combinations = StaticMethods.get_unique_combinations(ab_arr)
 
-        print "Marker precisions"
+        print ("Marker precisions")
 
         max_prec = -1000
         # total_prec = 0
@@ -311,7 +380,7 @@ class ScoreHandler:
             #     prec_cnt += 1
 
             str_comb = ', '.join(str(i) for i in comb)
-            print '[' + str_comb + "] " + str(prec)
+            print ('[' + str_comb + "] " + str(prec))
             # if prec > max_prec:
             #     max_prec = prec
         return max_prec
@@ -336,10 +405,11 @@ class ScoreHandler:
 
         cnt_c = 0
         for g in group2:
-            if g < 40:
+            if g >= 40:
                 cnt_c += 1
 
-        print cnt_c / (cnt_c + cnt_nc)
+        print (cnt_c / (cnt_c + cnt_nc))
+
 # sg = ScoreHandler(20,20,20)
 # print sg.get_independent_groups([1,2,3,4])
 # print sg.get_unique_combinations([1,2,3,4])

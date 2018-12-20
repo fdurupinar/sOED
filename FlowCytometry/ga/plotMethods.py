@@ -134,7 +134,7 @@ class PlotMethods:
 
     # def plot_input(self):
     #     """
-    #     Plots the initial data with cells and ab distributions
+    #     Plots the initial dataGeneration with cells and ab distributions
     #     :return:
     #     """
     #     x_data = []

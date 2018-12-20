@@ -3,22 +3,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scoreHandler import ScoreHandler
 from util.staticMethods import StaticMethods
+from plotMethods import PlotMethods
 import operator
 
-ANTIBODY_CNT = 64  # 16 # 64  # 240
+ANTIBODY_CNT = 244 #64  # 16 # 64  # 240
 
 POPULATION_SIZE = ANTIBODY_CNT / 4  # 40  # make this divisible by 4
 MAX_GENERATIONS = 250 - POPULATION_SIZE
-NC_CNT = 5  # non-cancer patients
-C_CNT = 5  # cancer patients
+NC_CNT = 1  # non-cancer patients
+C_CNT = 1  # cancer patients
 
 
-CELL_CNT = 100
+CELL_CNT = 10000
 
-
-MARKERS_LIST = [[0, 5, 10, 15]]
-MU_LIST = [0.99]
-STD_DEV_LIST = [0.01]
 
 MUTATION_PROBABILITY = 0.1  # 0.03
 CROSS_OVER_2_RATIO = 0.5
@@ -27,8 +24,7 @@ VISUALIZE_POPULATION = False
 
 class GASolver:
 
-    def __init__(self, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt, markers_list,  cell_cnt,
-                 mu_list, sigma_list):
+    def __init__(self, file_path, max_generations, population_size, antibody_cnt, nc_cnt, c_cnt):
 
         self.max_generations = max_generations
         self.population_size = population_size
@@ -43,17 +39,16 @@ class GASolver:
 
         self.total_population = population_size
 
-        self.score_handler = ScoreHandler(antibody_cnt, nc_cnt, c_cnt, markers_list, cell_cnt,
-                                          mu_list, sigma_list)
+        self.score_handler = ScoreHandler(file_path, nc_cnt, c_cnt)
 
         self.cross_over_indices_2_point = StaticMethods.generate_cross_over_indices_2_point(4)
         self.cross_over_indices_1_point = StaticMethods.generate_cross_over_indices_1_point(4)
 
-        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(MARKERS_LIST[0])
+        self.max_possible_fitness = self.score_handler.compute_max_possible_precision(range(0, 244))
 
         self.plot_methods = PlotMethods(self)
-        print "Maximum possible fitness value is:"
-        print self.max_possible_fitness
+        print ("Maximum possible fitness value is:")
+        print (self.max_possible_fitness)
 
     def create_population(self):
         """
@@ -339,14 +334,14 @@ class GASolver:
             total_max_fitness = self.find_max_fitness_and_child(gen + 1, True)
 
             if unmeasured_max_fitness['fitness'] < 0:
-                print "no unmeasured fitness value found"
+                print ("no unmeasured fitness value found")
             else:
-                print "unmeasured \t total"
-                print str(gen) + "\t" + str(unmeasured_max_fitness) + "\t" + str(total_max_fitness)
+                print ("unmeasured \t total")
+                print (str(gen) + "\t" + str(unmeasured_max_fitness) + "\t" + str(total_max_fitness))
 
             if total_max_fitness['fitness'] >= self.max_possible_fitness:
-                print "Success: "
-                print total_max_fitness['child']
+                print ("Success: ")
+                print (total_max_fitness['child'])
                 break
             else:  # update values for fittest unmeasured child through the experiment
                 self.score_handler.update_measured(unmeasured_max_fitness['child'])
@@ -354,9 +349,9 @@ class GASolver:
 
     def _print_generation(self, generation):
         for p in self.population[generation]:
-            print {'fitness': self.get_fitness_value(p), 'child': p}
+            print ({'fitness': self.get_fitness_value(p), 'child': p})
 
 
-gs = GASolver(MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT, MARKERS_LIST, CELL_CNT, MU_LIST, STD_DEV_LIST)
+gs = GASolver('../dataGeneration/pdac.csv', MAX_GENERATIONS, POPULATION_SIZE, ANTIBODY_CNT, NC_CNT, C_CNT)
 gs.run_simulation(MAX_GENERATIONS)
 

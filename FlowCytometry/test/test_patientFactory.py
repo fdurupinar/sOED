@@ -1,5 +1,5 @@
 from unittest import TestCase
-from data.patientFactory import PatientFactory
+from dataGeneration.patientFactory import PatientFactory
 
 
 cell_cnt = 100

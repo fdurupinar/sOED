@@ -1,5 +1,5 @@
 import unittest
-from data.patient import Patient
+from dataGeneration.patient import Patient
 
 ab_cnt = 5
 cell_cnt = 10

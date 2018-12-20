@@ -31,18 +31,18 @@ d_steps = 1  # 'k' steps in the original GAN paper. Can put the discriminator on
 g_steps = 1
 
 # ### Uncomment only one of these
-#(name, preprocess, d_input_func) = ("Raw data", lambda data: data, lambda x: x)
+#(name, preprocess, d_input_func) = ("Raw dataGeneration", lambda dataGeneration: dataGeneration, lambda x: x)
 (name, preprocess, d_input_func) = ("Data and variances", lambda data: decorate_with_diffs(data, 2.0), lambda x: x * 2)
 
-print("Using data [%s]" % (name))
+print("Using dataGeneration [%s]" % (name))
 
-# ##### DATA: Target data and generator input data
+# ##### DATA: Target dataGeneration and generator input dataGeneration
 
 def get_distribution_sampler(mu, sigma):
     return lambda n: torch.Tensor(np.random.normal(mu, sigma, (1, n)))  # Gaussian
 
 def get_generator_input_sampler():
-    return lambda m, n: torch.rand(m, n)  # Uniform-dist data into generator, _NOT_ Gaussian
+    return lambda m, n: torch.rand(m, n)  # Uniform-dist dataGeneration into generator, _NOT_ Gaussian
 
 # ##### MODELS: Generator model and discriminator model
 

@@ -169,11 +169,11 @@ class StaticMethods:
 # print StaticMethods.find_intersection_probability(70, 80, 50,  100)
 #
 #
-# data = StaticMethods.create_intersection_distribution([70, 80], 100)
-# print StaticMethods.draw_intersection_value(data)
+# dataGeneration = StaticMethods.create_intersection_distribution([70, 80], 100)
+# print StaticMethods.draw_intersection_value(dataGeneration)
 # # #
-# print data
+# print dataGeneration
 # #
 # import matplotlib.pyplot as plt
-# plt.bar(data['x'], data['y'])
+# plt.bar(dataGeneration['x'], dataGeneration['y'])
 # plt.show()
